@@ -1,0 +1,270 @@
+<div class="flex min-h-screen bg-white">
+  
+  <!-- Sidebar -->
+  <%- include('../partials/userSidebar') %>
+
+  <!-- Profile Content Wrapper -->
+  <div class="flex-1 bg-gray-100 p-10">
+    <div class="bg-white shadow-md rounded-xl p-8 max-w-3xl mx-auto">
+      <div class="text-center">
+
+        <!-- Profile Avatar -->
+        <div class="relative inline-block">
+          <% if (user.profile_image) { %>
+            <img src="<%= user.profile_image %>" alt="Profile"
+                 class="w-28 h-28 rounded-full border-4 border-gray-200 mx-auto object-cover">
+          <% } else { %>
+            <div class="w-28 h-28 rounded-full border-4 border-gray-200 bg-gray-800 flex items-center justify-center mx-auto text-white text-4xl font-bold">
+              <%= user.name.charAt(0).toUpperCase() %>
+            </div>
+          <% } %>
+
+          <!-- Edit Icon -->
+          <label for="profileUpload"
+                 class="absolute bottom-0 right-[-6px] bg-gray-800 text-white p-1 rounded-full text-sm cursor-pointer hover:bg-gray-700">
+            <i class="fas fa-pen"></i>
+          </label>
+          <input type="file" id="profileUpload" class="hidden" accept="image/*">
+        </div>
+
+        <!-- Name -->
+        <h1 class="text-2xl font-bold text-gray-900 mt-4">
+          <%= user.name %>
+        </h1>
+        <p class="text-gray-500">Member since <%= user.createdAt.getFullYear() %></p>
+      </div>
+
+      <!-- Details -->
+      <div class="mt-8 space-y-4">
+        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+          <i class="fas fa-user text-gray-500 w-6"></i>
+          <span class="ml-3 font-medium text-gray-700"><%= user.name %></span>
+        </div>
+        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+          <i class="fas fa-envelope text-gray-500 w-6"></i>
+          <span class="ml-3 text-gray-700"><%= user.email %></span>
+        </div>
+        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+          <i class="fas fa-phone text-gray-500 w-6"></i>
+          <span class="ml-3 text-gray-700"><%= user.mobile || "No phone added" %></span>
+        </div>
+        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+          <i class="fas fa-map-marker-alt text-gray-500 w-6"></i>
+          <% if (addresses && addresses.length > 0) { %>
+            <% const defaultAddress = addresses.find(addr => addr.is_Default); %>
+            <span class="ml-3 text-gray-700">
+              <%= defaultAddress 
+                ? `${defaultAddress.address}, ${defaultAddress.district}, ${defaultAddress.state}, ${defaultAddress.pincode}, ${defaultAddress.country}` 
+                : "No default address set" %>
+            </span>
+          <% } else { %>
+            <span class="ml-3 text-gray-700">No address added</span>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Edit Profile Button -->
+      <div class="mt-6 text-center">
+        <button type="button" onclick="openModal()"
+           class="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition">
+          <i class="fas fa-pen mr-2"></i> Edit Profile
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="editProfileModal" 
+     class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 relative">
+    <h2 class="text-xl font-bold mb-4">Edit Profile</h2>
+    
+    <form id="editProfileForm">
+      <!-- Full Name -->
+      <label class="block mb-2 text-sm font-medium">Full Name</label>
+      <input type="text" name="fullname" value="<%= user.name %>"
+             class="w-full p-2 border rounded mb-4" />
+
+      <!-- Email -->
+<label class="block mb-2 text-sm font-medium">Email</label>
+<input 
+  type="email" 
+  name="email" 
+  value="<%= user.email %>"
+  class="w-full p-2 border rounded mb-4 <%= user.googleId ? 'bg-gray-200 text-gray-600 cursor-not-allowed border-gray-300' : 'bg-white text-gray-900 focus:ring-2 focus:ring-gray-900' %>" 
+  <%= user.googleId ? 'disabled' : '' %> 
+/>
+<% if (user.googleId) { %>
+  <p class="text-xs text-gray-500 italic mt-[-6px] mb-3">
+    Email cannot be changed for Google sign-in users.
+  </p>
+<% } %>
+
+
+      <!-- Mobile -->
+      <label class="block mb-2 text-sm font-medium">Mobile</label>
+      <input type="text" name="mobile" value="<%= user.mobile || '' %>"
+             class="w-full p-2 border rounded mb-4" />
+
+      <!-- Address Section -->
+      <label class="block mb-2 text-sm font-medium">Address</label>
+      <% if (addresses && addresses.length > 0) { %>
+        <select name="address" class="w-full p-2 border rounded mb-4 max-h-32 overflow-y-auto">
+          <% addresses.forEach(addr => { %>
+            <option value="<%= addr._id %>" <%= addr.is_Default ? 'selected' : '' %>>
+              <%= addr.fullname %> - <%= addr.address %>, <%= addr.district %>, 
+              <%= addr.state %>, <%= addr.pincode %>
+            </option>
+          <% }) %>
+        </select>
+      <% } else { %>
+        <div class="mb-4">
+          <p class="text-gray-500 mb-2">No addresses found.</p>
+          <button type="button" 
+                  onclick="window.location.href='/profile/address'"
+                  class="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition">
+            <i class="fas fa-plus mr-2"></i> Add Address
+          </button>
+        </div>
+      <% } %>
+
+      <!-- Buttons -->
+      <div class="flex justify-end space-x-3">
+        <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-gray-900 text-white rounded">Save</button>
+      </div>
+    </form>
+
+    <!-- Close Icon -->
+    <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-600 hover:text-black">✕</button>
+  </div>
+</div>
+
+
+<!-- Toastr & JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="/js/logout.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const logoutBtn = document.getElementById('logoutBtn');
+    const uploadInput = document.getElementById('profileUpload');
+
+    toastr.options = {
+      closeButton: true,
+      progressBar: true,
+      positionClass: "toast-bottom-right",
+      timeOut: "2000"
+    }
+
+    //  LOGOUT 
+    
+      logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault(); 
+        
+        try {
+          
+          const res = await fetch('/logout', {
+            method: 'GET', 
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok && data.success) {
+            toastr.success(data.message || 'Logged out successfully');
+            
+            setTimeout(() => {
+              window.location.href = '/auth/login'; 
+            }, 1000);
+          } else {
+            toastr.error(data.message || 'Failed to log out');
+          }
+        } catch (err) {
+          console.error("Logout error:", err);
+          toastr.error("An error occurred during logout");
+        }
+      });
+    
+
+    // ✅ Profile Image Upload
+    uploadInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append('profile_image', file);
+
+        try {
+          const res = await fetch('/profile/upload', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          
+          if (data.success) {
+            toastr.success(data.message || 'Profile updated');
+            const avatarImg = document.querySelector('.relative.inline-block img');
+            if (avatarImg) {
+              avatarImg.src = data.image;
+            } else {
+              const container = document.querySelector('.relative.inline-block');
+              container.innerHTML = `
+                <img src="${data.image}" 
+                     class="w-28 h-28 rounded-full border-4 border-gray-200 mx-auto object-cover">
+                <label for="profileUpload"
+                       class="absolute bottom-0 right-2 bg-gray-800 text-white p-2 rounded-full text-sm cursor-pointer hover:bg-gray-700">
+                  <i class="fas fa-pen"></i>
+                </label>
+                <input type="file" id="profileUpload" class="hidden" accept="image/*">
+              `;
+            }
+          } else {
+            toastr.error(data.message || "Error uploading profile");
+          }
+        } catch (err) {
+          toastr.error("Upload failed");
+        }
+      }
+    });
+  });
+
+  const modal = document.getElementById('editProfileModal');
+  
+  function openModal() {
+    modal.classList.remove('hidden');
+  }
+
+  function closeModal() {
+    modal.classList.add('hidden');
+  }
+
+  // ✅ Handle profile update + OTP flow
+  document.getElementById('editProfileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = Object.fromEntries(new FormData(e.target).entries());
+
+    const res = await fetch('/profile/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    const data = await res.json();
+
+    if (data.otpRequired) {
+      toastr.info('OTP sent to your new email for verification');
+      setTimeout(() => {
+        window.location.href = '/auth/otp';
+      }, 1000);
+    } else if (data.success) {
+      toastr.success('Profile updated successfully');
+      closeModal();
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      toastr.error(data.message || 'Update failed');
+    }
+  });
+</script>

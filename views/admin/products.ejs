@@ -1,0 +1,1153 @@
+<div class="flex-1 p-6">
+
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-semibold">Product Management</h1>
+    <button onclick="document.getElementById('addProductModal').classList.remove('hidden')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+      + Add Product
+    </button>
+  </div>
+
+  <form method="GET" class="mb-6 flex gap-2">
+    <input type="text" name="search" placeholder="Search products..." value="<%= search %>" class="px-4 py-2 border border-gray-300 rounded w-full" />
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Search</button>
+    <% if (search) { %>
+      <a href="/admin/products" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Clear</a>
+    <% } %>
+  </form>
+
+  <table class="min-w-full bg-white rounded shadow overflow-hidden">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="py-4 px-3 text-center">S.No</th>
+        <th class="py-4 px-3 text-center">Title</th>
+        <th class="py-4 px-3 text-center">Category</th>
+        <th class="py-4 px-3 text-center">Brand</th>
+        <th class="py-4 px-3 text-center">Image</th>
+        <th class="py-4 px-3 text-center">Variants</th>
+        <th class="py-4 px-3 text-center">Regular Price</th>
+        <th class="py-4 px-3 text-center">Offer Price</th>
+        <th class="py-4 px-3 text-center">Stock Status</th>
+        <th class="py-4 px-3 text-center">Status</th>
+        <th class="py-4 px-3 text-center">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="text-gray-700">
+      <% if (typeof products === 'undefined' || products.length === 0) { %>
+        <tr>
+          <td colspan="10" class="text-center py-4 text-gray-500">No products found.</td>
+        </tr>
+      <% } else { %>
+        <% products.forEach((product, index) => { %>
+          <tr class="border-b hover:bg-gray-100" data-product='<%- JSON.stringify(product).replace(/'/g, "&#39;") %>'>
+            <td class="py-3 px-4"><%= (currentPage - 1) * 10 + index + 1 %></td>
+            <td class="py-3 px-4"><%= product.title %></td>
+            <td class="py-3 px-4"><%= product.category_id.name %></td>
+            <td class="py-3 px-4"><%= product.brand_id.name %></td>
+            <td class="py-3 px-4">
+              <% if (product.variants && product.variants.length > 0 && product.variants[0].images && product.variants[0].images.length > 0) { %>
+                <img src="<%= product.variants[0].images[0] %>" alt="<%= product.title %>" class="w-16 h-16 object-contain">
+              <% } else { %>
+                <span>No image</span>
+              <% } %>
+            </td>
+            <td class="py-3 px-4 text-sm">
+    <%
+      // --- This logic groups the variants by color ---
+      const variantsByColor = {};
+      if (product.variants && product.variants.length > 0) {
+        product.variants.forEach(variant => {
+          if (!variantsByColor[variant.color]) {
+            variantsByColor[variant.color] = [];
+          }
+          variantsByColor[variant.color].push(variant);
+        });
+      }
+    %>
+
+    <% if (Object.keys(variantsByColor).length > 0) { %>
+        <ul class="list-none p-0 m-0">
+          <% for (const color in variantsByColor) { %>
+            <li class="mb-1">
+              <strong class="font-medium"><%= color %>:</strong>
+              
+              <% variantsByColor[color].forEach((variant, index) => { %>
+                <span class="ml-1">
+                  <%= variant.size %> (<%= variant.quantity %>)
+                  <%= index < variantsByColor[color].length - 1 ? ',' : '' %>
+                </span>
+              <% }) %>
+            </li>
+          <% } %>
+        </ul>
+    <% } else { %>
+        <span class="text-gray-500">No variants</span>
+    <% } %>
+</td>
+            <td class="py-3 px-4">₹<%= product.regular_price.toFixed(2) %></td>
+            <td class="py-3 px-4">₹<%= product.offer_price ? product.offer_price.toFixed(2) : 'N/A' %></td>
+            <td class="py-3 px-4"><%= product.stock_status %></td>
+            <td class="py-3 px-4">
+    <button onclick="handleToggle(event, '<%= product._id %>')"
+        class="toggle-btn px-3 py-1 text-xs font-medium rounded-full text-white
+        <%= product.isListed ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 hover:bg-gray-500' %>">
+        <%= product.isListed ? 'Listed' : 'Unlisted' %>
+    </button>
+</td>
+            <td class="py-3 px-4 space-x-2 whitespace-nowrap">
+              <button class="edit-btn text-blue-600 hover:underline" onclick="handleEditClick(event, this)">
+                <i data-lucide="edit"></i>
+              </button>
+              <form action="/admin/products/<%= product._id %>" class="inline" onsubmit="confirmDelete(event, this)">
+                <button type="submit" class="text-red-600 hover:underline">
+                  <i data-lucide="trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+
+  <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+    <div class="mt-6 flex justify-center space-x-2">
+      <% for (let i = 1; i <= totalPages; i++) { %>
+        <a href="?page=<%= i %><%= search ? `&search=${search}` : '' %>"
+           class="px-3 py-1 rounded <%= currentPage === i ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300' %>">
+          <%= i %>
+        </a>
+      <% } %>
+    </div>
+  <% } %>
+
+  <div id="addProductModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl mx-auto overflow-y-auto max-h-[90vh]">
+        <h2 class="text-lg font-semibold mb-4">Add Product</h2>
+        <form action="/admin/products/add" method="POST" enctype="multipart/form-data" id="addProductForm" onsubmit="submitAddForm(event)" novalidate>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="add_category_id" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select id="add_category_id" name="category_id" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                        <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+                            <% categories.forEach(category => { %>
+                                <option value="<%= category._id %>"><%= category.name %></option>
+                            <% }) %>
+                        <% } %>
+                    </select>
+                    <span id="add_category_id_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="add_brand_id" class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                    <select id="add_brand_id" name="brand_id" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                        <% if (typeof brands !== 'undefined' && brands.length > 0) { %>
+                            <% brands.forEach(brand => { %>
+                                <option value="<%= brand._id %>"><%= brand.name %></option>
+                            <% }) %>
+                        <% } %>
+                    </select>
+                    <span id="add_brand_id_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="add_title" class="block text-sm font-medium text-gray-700 mb-1">Product Title</label>
+                    <input id="add_title" type="text" name="title" placeholder="Product Title" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                    <span id="add_title_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="add_stock_status" class="block text-sm font-medium text-gray-700 mb-1">Stock Status</label>
+                    <select id="add_stock_status" name="stock_status" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                        <option value="in_stock">In Stock</option>
+                        <option value="out_of_stock">Out of Stock</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label for="add_description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="add_description" name="description" placeholder="Description" class="w-full px-4 py-2 border border-gray-300 rounded"></textarea>
+                <span id="add_description_error" class="text-red-500 text-sm mt-1"></span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label for="add_regular_price" class="block text-sm font-medium text-gray-700 mb-1">Regular Price</label>
+                    <input id="add_regular_price" type="number" name="regular_price" placeholder="Regular Price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                    <span id="add_regular_price_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="add_offer_price" class="block text-sm font-medium text-gray-700 mb-1">Offer Price</label>
+                    <input id="add_offer_price" type="number" name="offer_price" placeholder="Offer Price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded">
+                    <span id="add_offer_price_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="add_warranty" class="block text-sm font-medium text-gray-700 mb-1">Warranty (months)</label>
+                    <input id="add_warranty" type="number" name="warranty" placeholder="Warranty (months)" class="w-full px-4 py-2 border border-gray-300 rounded">
+                    <span id="add_warranty_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+            </div>
+            
+            <label class="block text-sm font-medium text-gray-700 mb-2">Product Variants</label>
+            <span id="add_variants_error" class="text-red-500 text-sm mt-1"></span>
+            <div id="variantFields" class="mb-4 space-y-4">
+                </div>
+            
+            <button type="button" onclick="addVariantField()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 mb-4">Add Variant</button>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="document.getElementById('addProductModal').classList.add('hidden')" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editProductModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl mx-auto overflow-y-auto max-h-[90vh]">
+        <h2 class="text-lg font-semibold mb-4">Edit Product</h2>
+        <form action="/admin/products/" method="POST" enctype="multipart/form-data" id="editProductForm" onsubmit="submitEditForm(event)" novalidate>
+            <input type="hidden" name="id" id="editProductId">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="edit_category_id" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select id="edit_category_id" name="category_id" class="w-full px-4 py-2 border border-gray-300 rounded" required></select>
+                    <span id="edit_category_id_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="edit_brand_id" class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                    <select id="edit_brand_id" name="brand_id" class="w-full px-4 py-2 border border-gray-300 rounded" required></select>
+                    <span id="edit_brand_id_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="edit_title" class="block text-sm font-medium text-gray-700 mb-1">Product Title</label>
+                    <input id="edit_title" type="text" name="title" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                    <span id="edit_title_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="edit_stock_status" class="block text-sm font-medium text-gray-700 mb-1">Stock Status</label>
+                    <select id="edit_stock_status" name="stock_status" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                        <option value="in_stock">In Stock</option>
+                        <option value="out_of_stock">Out of Stock</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label for="edit_description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="edit_description" name="description" class="w-full px-4 py-2 border border-gray-300 rounded"></textarea>
+                <span id="edit_description_error" class="text-red-500 text-sm mt-1"></span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label for="edit_regular_price" class="block text-sm font-medium text-gray-700 mb-1">Regular Price</label>
+                    <input id="edit_regular_price" type="number" name="regular_price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                    <span id="edit_regular_price_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="edit_offer_price" class="block text-sm font-medium text-gray-700 mb-1">Offer Price</label>
+                    <input id="edit_offer_price" type="number" name="offer_price" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded">
+                    <span id="edit_offer_price_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label for="edit_warranty" class="block text-sm font-medium text-gray-700 mb-1">Warranty (months)</label>
+                    <input id="edit_warranty" type="number" name="warranty" class="w-full px-4 py-2 border border-gray-300 rounded">
+                    <span id="edit_warranty_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+            </div>
+
+            <label class="block text-sm font-medium text-gray-700 mb-2">Product Variants</label>
+            <span id="edit_variants_error" class="text-red-500 text-sm mt-1"></span>
+            
+            <div id="editVariantFields" class="mb-4 space-y-4"></div>
+            
+            <button type="button" onclick="addEditVariantField()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 mb-4">Add Variant</button>
+            <div class="flex justify-end space-x-2">
+                <button type="button" class="cancel-btn px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400" onclick="document.getElementById('editProductModal').classList.add('hidden')">Cancel</button>
+                <button type="submit" class="update-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+  <div id="cropperModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-[60] hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg mx-auto">
+        <h2 class="text-xl font-semibold mb-4">Crop Image</h2>
+        <div class="img-container max-h-[60vh] overflow-hidden">
+            <img id="imageToCrop" src="" alt="Image to crop">
+        </div>
+        <div class="flex justify-end space-x-2 mt-4">
+            <button type="button" onclick="cancelCropping()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Cancel</button>
+            <button type="button" id="cropButton" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Crop & Use</button>
+        </div>
+    </div>
+</div>
+
+  <script>
+    var categories = <%- JSON.stringify(categories) || '[]' %>;
+    var brands = <%- JSON.stringify(brands) || '[]' %>;
+
+    try {
+
+ function clearErrors(form) {
+            const errorSpans = form.querySelectorAll('span[id$="_error"]');
+            errorSpans.forEach(span => {
+                span.textContent = '';
+            });
+        }
+
+        function showError(errorId, message) {
+            const errorSpan = document.getElementById(errorId);
+            if (errorSpan) {
+                errorSpan.textContent = message;
+            }
+        }
+        
+        // Function to map server errors (e.g., "variants[0][color]") to client IDs
+        function mapServerErrors(errors, mode) {
+            const prefix = mode === 'add' ? 'add_' : 'edit_';
+            for (const key in errors) {
+                const message = errors[key];
+                
+                // Convert server path to client ID
+                // e.g., "variants[0][color]" -> "add_variants_0_color_error"
+                // e.g., "title" -> "add_title_error"
+                const errorId = prefix + key.replace(/\[/g, '_').replace(/\]/g, '') + '_error';
+                
+                showError(errorId, message);
+            }
+        }
+
+
+function handleToggle(event, id) {
+        event.preventDefault();
+        
+        fetch(`/admin/products/${id}`, {
+            method: 'PATCH',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Success!', data.message, 'success')
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Error!', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+        });
+    }
+        // --- UPDATED VALIDATION FUNCTIONS ---
+        // (Now use new helper functions)
+
+        // Replace your old validateAddForm function
+function validateAddForm() {
+    const form = document.getElementById('addProductForm');
+    clearErrors(form);
+    let isValid = true;
+
+    const title = form.querySelector('[name="title"]').value;
+    const regularPrice = parseFloat(form.querySelector('[name="regular_price"]').value);
+    const offerPrice = parseFloat(form.querySelector('[name="offer_price"]').value);
+    
+    const warrantyInput = form.querySelector('[name="warranty"]');
+    const warrantyValue = warrantyInput.value;
+    if (warrantyValue && warrantyValue.trim() !== '') { 
+        const parsedFloat = parseFloat(warrantyValue);
+        const parsedInt = parseInt(warrantyValue, 10);
+
+        if (isNaN(parsedFloat)) {
+            showError('add_warranty_error', 'Warranty must be a valid number.');
+            isValid = false;
+        } else if (parsedFloat !== parsedInt) {
+            showError('add_warranty_error', 'Warranty must be a whole number (e.g., 6, 12).');
+            isValid = false;
+        } else if (parsedInt < 0) {
+            showError('add_warranty_error', 'Warranty must be a non-negative number.');
+            isValid = false;
+        }
+    }
+
+    if (title.trim().length < 3) {
+        showError('add_title_error', 'Title must be at least 3 characters long.');
+        isValid = false;
+    }
+    if (isNaN(regularPrice) || regularPrice <= 0) {
+        showError('add_regular_price_error', 'Regular Price must be a number greater than 0.');
+        isValid = false;
+    }
+    if (offerPrice && (isNaN(offerPrice) || offerPrice <= 0)) {
+        showError('add_offer_price_error', 'Offer Price must be a positive number.');
+        isValid = false;
+    }
+    if (offerPrice && regularPrice && offerPrice >= regularPrice) {
+        showError('add_offer_price_error', 'Offer Price must be less than the Regular Price.');
+        isValid = false;
+    }
+
+    const variantRows = form.querySelectorAll('#variantFields .variant-row');
+    if (variantRows.length === 0) {
+        showError('add_variants_error', 'You must add at least one product variant.');
+        isValid = false;
+    }
+    
+    // --- FIX 2: Updated Variant Validation Loop ---
+    for (let i = 0; i < variantRows.length; i++) {
+        const color = variantRows[i].querySelector(`[name="variants[${i}][color]"]`).value;
+        const files = variantRows[i].querySelector(`[name="variants[${i}][images]"]`).files;
+
+        if (color.trim() === '') {
+            showError(`add_variants_${i}_color_error`, 'Color is required.');
+            isValid = false;
+        }
+        
+        if (files.length < 3) {
+            showError(`add_variants_${i}_images_error`, 'Each variant must have at least 3 images.');
+            isValid = false;
+        }
+
+        // Nested loop to check all 3 size/quantity pairs
+        let hasAtLeastOneSize = false;
+        for (let j = 0; j < 3; j++) {
+            const sizeInput = variantRows[i].querySelector(`[name="variants[${i}][sizes][${j}]"]`);
+            const quantityInput = variantRows[i].querySelector(`[name="variants[${i}][quantities][${j}]"]`);
+
+            const size = sizeInput.value.trim();
+            const quantity = quantityInput.value.trim();
+
+            // Logic: If one field in a pair is filled, the other must be too.
+            if (size || quantity) {
+                if (!size) {
+                    showError(`add_variants_${i}_quantities_${j}_error`, 'Size is required if quantity is filled.');
+                    isValid = false;
+                }
+                if (!quantity) {
+                    showError(`add_variants_${i}_quantities_${j}_error`, 'Quantity is required if size is filled.');
+                    isValid = false;
+                }
+
+                // Check for valid quantity
+                if (quantity) {
+                    const parsedQty = parseInt(quantity);
+                    if (isNaN(parsedQty) || parsedQty < 0) {
+                        showError(`add_variants_${i}_quantities_${j}_error`, 'Quantity must be 0 or more.');
+                        isValid = false;
+                    }
+                }
+                
+                // The first size/qty pair (index 0) is mandatory
+                if (j === 0) { 
+                   hasAtLeastOneSize = true;
+                }
+            }
+        } // end nested loop
+        
+        if (!hasAtLeastOneSize) {
+            showError(`add_variants_${i}_main_error`, 'At least one size/quantity pair is required.');
+            isValid = false;
+        }
+    } // end main variant loop
+    // --- END FIX 2 ---
+    
+    return isValid;
+}
+// Replace your old validateEditForm function
+function validateEditForm() {
+    const form = document.getElementById('editProductForm');
+    clearErrors(form);
+    let isValid = true;
+    
+    const title = form.querySelector('[name="title"]').value;
+    const regularPrice = parseFloat(form.querySelector('[name="regular_price"]').value);
+    const offerPrice = parseFloat(form.querySelector('[name="offer_price"]').value);
+    
+    const warrantyInput = form.querySelector('[name="warranty"]');
+    const warrantyValue = warrantyInput.value;
+    if (warrantyValue && warrantyValue.trim() !== '') { 
+        const parsedFloat = parseFloat(warrantyValue);
+        const parsedInt = parseInt(warrantyValue, 10);
+
+        if (isNaN(parsedFloat)) {
+            showError('edit_warranty_error', 'Warranty must be a valid number.');
+            isValid = false;
+        } else if (parsedFloat !== parsedInt) {
+            showError('edit_warranty_error', 'Warranty must be a whole number (e.g., 6, 12).');
+            isValid = false;
+        } else if (parsedInt < 0) {
+            showError('edit_warranty_error', 'Warranty must be a non-negative number.');
+            isValid = false;
+        }
+    }
+
+    if (title.trim().length < 3) {
+        showError('edit_title_error', 'Title must be at least 3 characters long.');
+        isValid = false;
+    }
+    if (isNaN(regularPrice) || regularPrice <= 0) {
+        showError('edit_regular_price_error', 'Regular Price must be a number greater than 0.');
+        isValid = false;
+    }
+    if (offerPrice && (isNaN(offerPrice) || offerPrice <= 0)) {
+        showError('edit_offer_price_error', 'Offer Price must be a positive number.');
+        isValid = false;
+    }
+    if (offerPrice && regularPrice && offerPrice >= regularPrice) {
+        showError('edit_offer_price_error', 'Offer Price must be less than the Regular Price.');
+        isValid = false;
+    }
+
+    // --- FIX 2: Updated Variant Validation Loop ---
+    const variantRows = form.querySelectorAll('#editVariantFields .variant-row');
+    if (variantRows.length === 0) {
+        showError('edit_variants_error', 'You must add at least one product variant.');
+        isValid = false;
+    }
+    
+    for (let i = 0; i < variantRows.length; i++) {
+        const color = variantRows[i].querySelector(`[name="variants[${i}][color]"]`).value;
+
+        if (color.trim() === '') {
+            showError(`edit_variants_${i}_color_error`, 'Color is required.');
+            isValid = false;
+        }
+        
+        // Check total image count (existing + new)
+        const existingImages = variantRows[i].querySelectorAll(`[name="variants[${i}][existing_images][]"]`).length;
+        const newImageInput = variantRows[i].querySelector(`[name="variants[${i}][images]"]`);
+        const newImages = newImageInput ? newImageInput.files.length : 0;
+        const totalImages = existingImages + newImages;
+
+        if (totalImages < 3) {
+            showError(`edit_variants_${i}_images_error`, 'Each variant must have at least 3 images (new or existing).');
+            isValid = false;
+        }
+
+        // Nested loop to check all 3 size/quantity pairs
+        let hasAtLeastOneSize = false;
+        for (let j = 0; j < 3; j++) {
+            const sizeInput = variantRows[i].querySelector(`[name="variants[${i}][sizes][${j}]"]`);
+            const quantityInput = variantRows[i].querySelector(`[name="variants[${i}][quantities][${j}]"]`);
+
+            const size = sizeInput.value.trim();
+            const quantity = quantityInput.value.trim();
+
+            if (size || quantity) {
+                if (!size) {
+                    showError(`edit_variants_${i}_quantities_${j}_error`, 'Size is required if quantity is filled.');
+                    isValid = false;
+                }
+                if (!quantity) {
+                    showError(`edit_variants_${i}_quantities_${j}_error`, 'Quantity is required if size is filled.');
+                    isValid = false;
+                }
+
+                if (quantity) {
+                    const parsedQty = parseInt(quantity);
+                    if (isNaN(parsedQty) || parsedQty < 0) {
+                        showError(`edit_variants_${i}_quantities_${j}_error`, 'Quantity must be a whole numberx.');
+                        isValid = false;
+                    }
+                }
+                
+                if (j === 0) {
+                   hasAtLeastOneSize = true;
+                }
+            }
+        } // end nested loop
+        
+        if (!hasAtLeastOneSize) {
+            showError(`edit_variants_${i}_main_error`, 'At least one size/quantity pair is required.');
+            isValid = false;
+        }
+    } // end main variant loop
+    // --- END FIX 2 ---
+    
+    return isValid;
+}
+
+        // --- UPDATED FETCH SUBMISSION FUNCTIONS ---
+        // (Now handle the `data.errors` object)
+
+        function submitAddForm(event) {
+            event.preventDefault();
+            if (!validateAddForm()) return;
+
+            const form = document.getElementById('addProductForm');
+            const formData = new FormData(form);
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Adding...';
+
+            fetch('/admin/products/add', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok) {
+                    document.getElementById('addProductModal').classList.add('hidden');
+                    Swal.fire('Success!', data.message, 'success')
+                        .then(() => window.location.reload());
+                } else {
+                    // This is a validation or server error
+                    if (data.errors) {
+                        // Zod validation error
+                        mapServerErrors(data.errors, 'add');
+                        Swal.fire('Validation Error', data.message, 'error');
+                    } else {
+                        // Other server error
+                        Swal.fire('Error!', data.message, 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Add';
+            });
+        }
+
+        function submitEditForm(event) {
+            event.preventDefault();
+            if (!validateEditForm()) return;
+            
+            const form = document.getElementById('editProductForm');
+            const formData = new FormData(form);
+            const id = form.querySelector('#editProductId').value;
+            const submitButton = form.querySelector('button.update-btn');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Updating...';
+
+            fetch(`/admin/products/${id}`, {
+                method: 'PUT',
+                body: formData
+            })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok) {
+                    document.getElementById('editProductModal').classList.add('hidden');
+                    Swal.fire('Success!', data.message, 'success')
+                        .then(() => window.location.reload());
+                } else {
+                    if (data.errors) {
+                        mapServerErrors(data.errors, 'edit');
+                        Swal.fire('Validation Error', data.message, 'error');
+                    } else {
+                        Swal.fire('Error!', data.message, 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Update';
+            });
+        }
+
+
+function confirmDelete(event, form) {
+
+    event.preventDefault();
+
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+    })
+    .then((result) => {
+
+        if (result.isConfirmed) {
+
+            fetch(form.action, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+            .then((response) => response.json())
+            .then((data) => {
+
+                if (data.success) {
+
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'Product has been deleted.',
+                        icon: 'success'
+                    })
+                    .then(() => {
+                        location.reload();
+                    });
+
+                } else {
+
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Something went wrong',
+                        icon: 'error'
+                    });
+
+                }
+
+            })
+            .catch((error) => {
+
+                console.log(error);
+
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Server error',
+                    icon: 'error'
+                });
+
+            });
+
+        }
+
+    });
+
+}
+// cropper js
+// --- CROPPER LOGIC WITH APPENDING & QUEUE ---
+let cropper;
+let currentFileInput;
+let currentVariantIndex;
+let currentMode;
+
+// Queue management for the CURRENT selection
+let filesToCropQueue = [];
+let originalFileCount = 0;
+
+// NEW: An object to store the final list of cropped files for EACH variant
+let finalFilesByVariant = {};
+
+const imageToCrop = document.getElementById('imageToCrop');
+const cropperModal = document.getElementById('cropperModal');
+const cropperModalTitle = cropperModal.querySelector('h2');
+const cropButton = document.getElementById('cropButton');
+
+// This function is triggered when a user selects one or more files
+function handleFileSelect(event, index, mode) {
+    currentFileInput = event.target;
+    currentVariantIndex = index;
+    currentMode = mode;
+    const files = event.target.files;
+
+    if (files && files.length > 0) {
+        // We only populate the temporary queue. We DON'T clear the final list.
+        filesToCropQueue = Array.from(files);
+        originalFileCount = files.length;
+        
+        processNextFileInQueue();
+    }
+}
+
+// Processes the next file in the temporary queue
+function processNextFileInQueue() {
+    if (filesToCropQueue.length > 0) {
+        const file = filesToCropQueue.shift();
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const currentFileNumber = originalFileCount - filesToCropQueue.length;
+            cropperModalTitle.textContent = `Crop Image (${currentFileNumber} of ${originalFileCount})`;
+            imageToCrop.src = e.target.result;
+            cropperModal.classList.remove('hidden');
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(imageToCrop, {
+                aspectRatio: NaN,
+                viewMode: 1,
+                background: false,
+            });
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // When the temporary queue is empty, finalize and update the display
+        finalizeCroppedFiles();
+    }
+}
+
+// Runs when the "Crop" button is clicked
+function cropAndApply() {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({ width: 800, height: 800 });
+
+    canvas.toBlob((blob) => {
+        const fileName = `cropped_${Date.now()}.png`;
+        const croppedFile = new File([blob], fileName, { type: "image/png" });
+        
+        // NEW: Add the cropped file to the PERSISTENT list for the current variant
+        if (!finalFilesByVariant[currentVariantIndex]) {
+            finalFilesByVariant[currentVariantIndex] = [];
+        }
+        finalFilesByVariant[currentVariantIndex].push(croppedFile);
+        
+        // Process the next image in the temporary queue
+        processNextFileInQueue();
+
+    }, 'image/png');
+}
+
+// Puts ALL cropped files for the current variant back into the file input
+function finalizeCroppedFiles() {
+    // Get the complete list of files for this variant
+    const completeFileList = finalFilesByVariant[currentVariantIndex] || [];
+    
+    const dataTransfer = new DataTransfer();
+    completeFileList.forEach(file => dataTransfer.items.add(file));
+    currentFileInput.files = dataTransfer.files;
+
+    // Update the preview with the complete list
+    previewVariantImages({ target: currentFileInput }, currentVariantIndex, currentMode);
+    
+    // Hide modal and clean up
+    cropperModal.classList.add('hidden');
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+}
+
+// Updated cancel function to ONLY clear the temporary queue
+function cancelCropping() {
+    cropperModal.classList.add('hidden');
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+    // Only clear the queue of files currently being processed
+    filesToCropQueue = [];
+}
+
+cropButton.addEventListener('click', cropAndApply);
+// --- END CROPPER LOGIC ---
+
+
+
+function removeImage(event, variantIndex, fileIndex, mode) {
+    event.preventDefault(); // Stop any default button behavior
+    
+    // Check if the file list exists and remove the file at the specific index
+    if (finalFilesByVariant[variantIndex] && finalFilesByVariant[variantIndex][fileIndex]) {
+        // Remove the file from our persistent list
+        finalFilesByVariant[variantIndex].splice(fileIndex, 1);
+
+        // Reconstruct the correct fileInput ID based on the mode
+        const fileInputId = (mode === 'add')
+            ? `variantImages${variantIndex}`
+            : `editVariantImages${variantIndex}`;
+            
+        const fileInput = document.getElementById(fileInputId);
+        
+        if (fileInput) {
+            // Get the complete list of remaining files for this variant
+            const remainingFiles = finalFilesByVariant[variantIndex] || [];
+
+            // Create a new DataTransfer and FileList with the remaining files
+            const dataTransfer = new DataTransfer();
+            remainingFiles.forEach(file => dataTransfer.items.add(file));
+
+            // Update the actual file input
+            fileInput.files = dataTransfer.files;
+
+            // Re-render the previews for this specific variant
+            previewVariantImages({ target: fileInput }, variantIndex, mode);
+        }
+    }
+}
+
+
+// to remove existing images in the edit form
+function removeExistingImage(event, wrapperId) {
+    event.preventDefault(); // Stop the form from submitting
+    const imageWrapper = document.getElementById(wrapperId);
+    if (imageWrapper) {
+        // This removes the preview AND the hidden input field inside it.
+        imageWrapper.remove();
+    }
+}
+
+
+
+      function handleEditClick(event, button) {
+  event.preventDefault();
+  const row = button.closest('tr');
+  const productDataString = row.getAttribute('data-product');
+  
+  if (productDataString) {
+    const product = JSON.parse(productDataString);
+    openEditModal(product);
+  } else {
+    console.error('Could not find product data for this row.');
+  }
+}
+
+
+function openEditModal(product) {
+            try {
+                // (Clear the finalFilesByVariant object for the new modal)
+                finalFilesByVariant = {};
+
+                const modal = document.getElementById('editProductModal');
+                if (!modal) return console.error('Edit modal element not found');
+                clearErrors(modal);
+                
+                const form = modal.querySelector('#editProductForm');
+                form.action = `/admin/products/edit/${product._id}`;
+
+                form.querySelector('#editProductId').value = product._id;
+                
+                // Populate main fields
+                form.querySelector('[name="category_id"]').innerHTML = categories.map(c => `<option value="${c._id}" ${c._id === product.category_id._id ? 'selected' : ''}>${c.name}</option>`).join('');
+                form.querySelector('[name="brand_id"]').innerHTML = brands.map(b => `<option value="${b._id}" ${b._id === product.brand_id._id ? 'selected' : ''}>${b.name}</option>`).join('');
+                form.querySelector('[name="title"]').value = product.title || '';
+                form.querySelector('[name="stock_status"]').value = product.stock_status || 'in_stock';
+                form.querySelector('[name="description"]').value = product.description || '';
+                form.querySelector('[name="regular_price"]').value = product.regular_price || '';
+                form.querySelector('[name="offer_price"]').value = product.offer_price || '';
+                form.querySelector('[name="warranty"]').value = product.warranty || '';
+
+                const editVariantFields = document.getElementById('editVariantFields');
+                editVariantFields.innerHTML = '';
+                // (Add the main variants error span)
+                editVariantFields.insertAdjacentHTML('beforebegin', '<span id="edit_variants_error" class="text-red-500 text-sm mt-1"></span>');
+
+                const variantsByColor = {};
+                if (product.variants && Array.isArray(product.variants)) {
+                    product.variants.forEach(variant => {
+                        if (!variantsByColor[variant.color]) variantsByColor[variant.color] = [];
+                        variantsByColor[variant.color].push(variant);
+                    });
+                }
+
+                let variantIndex = 0;
+                for (const color in variantsByColor) {
+                    const variantsForThisColor = variantsByColor[color];
+                    const variantRow = document.createElement('div');
+                    variantRow.className = 'variant-row flex flex-col gap-2 p-3 border rounded-lg';
+
+                    let sizeSlotsHTML = '';
+                    for (let i = 0; i < 3; i++) {
+                        const variant = variantsForThisColor[i] || {};
+                        sizeSlotsHTML += `
+                            <div class="size-slot flex flex-col gap-2">
+                                <div class="flex gap-2">
+                                    <input type="text" name="variants[${variantIndex}][sizes][${i}]" value="${variant.size || ''}" placeholder="Size" class="w-1/2 px-4 py-2 border rounded">
+                                    <input type="number" name="variants[${variantIndex}][quantities][${i}]" value="${variant.quantity || ''}" placeholder="Quantity" class="w-1/2 px-4 py-2 border rounded">
+                                </div>
+                                <span id="edit_variants_${variantIndex}_quantities_${i}_error" class="text-red-500 text-sm"></span>
+                            </div>`;
+                    }
+
+                    const images = variantsForThisColor.length > 0 ? variantsForThisColor[0].images : [];
+                    let imagePreviewsHTML = '';
+                    images.forEach((img, imgIndex) => {
+                        const wrapperId = `existing-image-${variantIndex}-${imgIndex}`;
+                        imagePreviewsHTML += `<div id="${wrapperId}" class="relative inline-block w-16 h-16 mr-2 mb-2"><img src="${img}" alt="${color}" class="w-16 h-16 object-contain bg-gray-100 rounded"><button type="button" onclick="removeExistingImage(event, '${wrapperId}')" class="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center cursor-pointer">&times;</button><input type="hidden" name="variants[${variantIndex}][existing_images][]" value="${img}"></div>`;
+                    });
+
+                    variantRow.innerHTML = `
+                        <div>
+                            <label for="editVariantColor${variantIndex}" class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                            <input id="editVariantColor${variantIndex}" type="text" name="variants[${variantIndex}][color]" value="${color}" class="w-full px-4 py-2 border rounded" required>
+                            <span id="edit_variants_${variantIndex}_color_error" class="text-red-500 text-sm mt-1"></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sizes & Quantities</label>
+                            <div class="size-slots flex flex-col md:flex-row gap-2">${sizeSlotsHTML}</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mt-2">Current Images</label>
+                            <div id="editVariantPreview_Existing${variantIndex}" class="flex gap-2 flex-wrap mb-2">${imagePreviewsHTML}</div>
+                        </div>
+                        <div>
+                            <label for="editVariantImages${variantIndex}" class="block text-sm font-medium">Upload New Images</label>
+                            <input type="file" id="editVariantImages${variantIndex}" name="variants[${variantIndex}][images]" accept="image/*" multiple class="w-full text-sm border rounded" onchange="handleFileSelect(event, ${variantIndex}, 'edit')">
+                            <div id="editVariantPreview_New${variantIndex}" class="flex gap-2 flex-wrap mt-2"></div>
+                            <span id="edit_variants_${variantIndex}_images_error" class="text-red-500 text-sm mt-1"></span>
+                        </div>
+                        <span id="edit_variants_${variantIndex}_main_error" class="text-red-500 text-sm mt-1"></span>
+                    `;
+                    editVariantFields.appendChild(variantRow);
+                    variantIndex++;
+                }
+
+                modal.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error opening edit modal:', error);
+            }
+        }
+
+
+
+      
+// Replace your old previewVariantImages function with this corrected one
+function previewVariantImages(event, index, mode) {
+    // This logic now correctly finds the preview div for BOTH modals
+    let previewId;
+    if (mode === 'add') {
+        previewId = `addVariantPreview${index}`;
+    } else { // mode === 'edit'
+        previewId = `editVariantPreview_New${index}`;
+    }
+
+    const preview = document.getElementById(previewId);
+
+    // If the preview div doesn't exist, log an error and stop
+    if (!preview) {
+        console.error(`Preview container with ID '${previewId}' not found.`);
+        return;
+    }
+
+    preview.innerHTML = ''; // Clear existing previews
+    const files = event.target.files;
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                // Create a wrapper for the image and remove button
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative inline-block w-16 h-16 mr-2 mb-2';
+
+                // Create the image
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'w-16 h-16 object-contain bg-gray-100 rounded';
+
+                // Create the remove ('X') button
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.className = 'absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center cursor-pointer';
+                
+                // Add the click event to call the removeImage function
+                removeBtn.onclick = function(event) {
+                    removeImage(event, index, i, mode);
+                };
+
+                // Add the image and button to the wrapper
+                wrapper.appendChild(img);
+                wrapper.appendChild(removeBtn);
+
+                // Add the wrapper to the preview area
+                preview.appendChild(wrapper);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    }
+}
+
+ function addVariantField() {
+            const variantFields = document.getElementById('variantFields');
+            const variantCount = variantFields.getElementsByClassName('variant-row').length;
+            const variantRow = document.createElement('div');
+            variantRow.className = 'variant-row flex flex-col gap-2 p-3 border rounded-lg';
+            variantRow.innerHTML = `
+                <div>
+                    <label for="variantColor${variantCount}" class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <input id="variantColor${variantCount}" type="text" name="variants[${variantCount}][color]" placeholder="Color" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                    <span id="add_variants_${variantCount}_color_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sizes & Quantities</label>
+                    <div class="size-slots flex flex-col md:flex-row gap-2">
+                        <div class="size-slot flex flex-col gap-2">
+                            <div class="flex gap-2">
+                                <input type="text" name="variants[${variantCount}][sizes][0]" placeholder="Size (e.g., S)" class="w-1/2 px-4 py-2 border border-gray-300 rounded" required>
+                                <input type="number" name="variants[${variantCount}][quantities][0]" placeholder="Quantity" class="w-1/2 px-4 py-2 border border-gray-300 rounded" required>
+                            </div>
+                            <span id="add_variants_${variantCount}_quantities_0_error" class="text-red-500 text-sm"></span>
+                        </div>
+                        <div class="size-slot flex flex-col gap-2">
+                            <div class="flex gap-2">
+                                <input type="text" name="variants[${variantCount}][sizes][1]" placeholder="Size (e.g., M)" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                                <input type="number" name="variants[${variantCount}][quantities][1]" placeholder="Quantity" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                            </div>
+                            <span id="add_variants_${variantCount}_quantities_1_error" class="text-red-500 text-sm"></span>
+                        </div>
+                        <div class="size-slot flex flex-col gap-2">
+                            <div class="flex gap-2">
+                                <input type="text" name="variants[${variantCount}][sizes][2]" placeholder="Size (e.g., L)" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                                <input type="number" name="variants[${variantCount}][quantities][2]" placeholder="Quantity" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                            </div>
+                            <span id="add_variants_${variantCount}_quantities_2_error" class="text-red-500 text-sm"></span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="variantImages${variantCount}" class="block text-sm font-medium text-gray-700 mt-2">Upload Variant Images</label>
+                    <input type="file" id="variantImages${variantCount}" name="variants[${variantCount}][images]" accept="image/*" multiple class="w-full text-sm border rounded" onchange="handleFileSelect(event, ${variantCount}, 'add')">
+                    <div id="addVariantPreview${variantCount}" class="flex gap-2 flex-wrap mt-2"></div>
+                    <span id="add_variants_${variantCount}_images_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <span id="add_variants_${variantCount}_main_error" class="text-red-500 text-sm mt-1"></span>
+            `;
+            variantFields.appendChild(variantRow);
+        }
+
+      
+function addEditVariantField() {
+            const editVariantFields = document.getElementById('editVariantFields');
+            const variantCount = editVariantFields.getElementsByClassName('variant-row').length;
+            const variantRow = document.createElement('div');
+            variantRow.className = 'variant-row flex flex-col gap-2 p-3 border rounded-lg';
+            variantRow.innerHTML = `
+                <div>
+                    <label for="editVariantColor${variantCount}" class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <input id="editVariantColor${variantCount}" type="text" name="variants[${variantCount}][color]" placeholder="Color" class="w-full px-4 py-2 border border-gray-300 rounded" required>
+                    <span id="edit_variants_${variantCount}_color_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sizes & Quantities</label>
+                    <div class="size-slots flex flex-col md:flex-row gap-2">
+                        <div class="size-slot flex flex-col gap-1">
+                            <div class="flex gap-2">
+                                <input type="text" name="variants[${variantCount}][sizes][0]" placeholder="Size (e.g., S)" class="w-1/2 px-4 py-2 border border-gray-300 rounded" required>
+                                <input type="number" name="variants[${variantCount}][quantities][0]" placeholder="Quantity" class="w-1/2 px-4 py-2 border border-gray-300 rounded" required>
+                            </div>
+                            <span id="edit_variants_${variantCount}_quantities_0_error" class="text-red-500 text-sm"></span>
+                        </div>
+                        <div class="size-slot flex flex-col gap-1">
+                            <div class="flex gap-2">
+                                <input type="text" name="variants[${variantCount}][sizes][1]" placeholder="Size (e.g., M)" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                                <input type="number" name="variants[${variantCount}][quantities][1]" placeholder="Quantity" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                            </div>
+                            <span id="edit_variants_${variantCount}_quantities_1_error" class="text-red-500 text-sm"></span>
+                        </div>
+                        <div class="size-slot flex flex-col gap-1">
+                            <div class="flex gap-2">
+                                <input type="text" name="variants[${variantCount}][sizes][2]" placeholder="Size (e.g., L)" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                                <input type="number" name="variants[${variantCount}][quantities][2]" placeholder="Quantity" class="w-1/2 px-4 py-2 border border-gray-300 rounded">
+                            </div>
+                            <span id="edit_variants_${variantCount}_quantities_2_error" class="text-red-500 text-sm"></span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="editVariantImages${variantCount}" class="block text-sm font-medium text-gray-700 mt-2">Upload Variant Images</label>
+                    <input type="file" id="editVariantImages${variantCount}" name="variants[${variantCount}][images]" accept="image/*" multiple class="w-full text-sm border rounded" onchange="handleFileSelect(event, ${variantCount}, 'edit')">
+                    <div id="editVariantPreview_New${variantCount}" class="flex gap-2 flex-wrap mt-2"></div>
+                    <span id="edit_variants_${variantCount}_images_error" class="text-red-500 text-sm mt-1"></span>
+                </div>
+                <span id="edit_variants_${variantCount}_main_error" class="text-red-500 text-sm mt-1"></span>
+            `;
+            editVariantFields.appendChild(variantRow);
+        }
+
+      lucide.createIcons();
+    } catch (e) {
+      console.error('Script execution failed:', e);
+    }
+  </script>
+</div>

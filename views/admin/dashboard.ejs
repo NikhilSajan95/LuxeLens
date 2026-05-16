@@ -1,0 +1,223 @@
+
+<div class="flex-1 p-6">
+  <h1 class="dashboard-title text-2xl font-semibold mb-6">Admin Dashboard</h1>
+
+  <!-- Stats Cards -->
+  <div class="cards-container grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="card bg-white p-4 rounded shadow" style="box-shadow: var(--card-shadow);">
+      <div class="card-header text-gray-600 font-medium text-sm uppercase mb-2">Total Sales</div>
+      <div class="card-subtitle text-gray-600 text-sm mb-2">This Month</div>
+      <div class="card-title text-2xl font-bold">$<%= totalSales.toFixed(2) %></div>
+      <div class="chart-container h-20">
+        <canvas id="sales-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="card bg-white p-4 rounded shadow" style="box-shadow: var(--card-shadow);">
+      <div class="card-header text-gray-600 font-medium text-sm uppercase mb-2">Customers</div>
+      <div class="card-subtitle text-gray-600 text-sm mb-2">This Month</div>
+      <div class="card-title text-2xl font-bold"><%= totalCustomers %></div>
+      <div class="chart-container h-20">
+        <canvas id="customers-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="card bg-white p-4 rounded shadow" style="box-shadow: var(--card-shadow);">
+      <div class="card-header text-gray-600 font-medium text-sm uppercase mb-2">Orders</div>
+      <div class="card-subtitle text-gray-600 text-sm mb-2">Monthly Goal: 1000</div>
+      <div class="card-title text-2xl font-bold"><%= totalOrders %></div>
+      <div class="progress-container h-2 bg-gray-200 rounded">
+        <div class="progress-bar h-full bg-blue-600 rounded" style="width: <%= (totalOrders / 1000 * 100) %>%;"></div>
+      </div>
+      <div class="card-subtitle text-gray-600 text-sm mt-2"><%= 1000 - totalOrders %> left</div>
+    </div>
+  </div>
+
+  <!-- Main Chart -->
+  <div class="chart-card bg-white p-4 rounded shadow mb-6" style="box-shadow: var(--card-shadow);">
+    <div class="chart-header flex justify-between items-center mb-4">
+      <div class="chart-title text-lg font-semibold">Sales Overview</div>
+    </div>
+    <div class="large-chart-container h-64">
+      <canvas id="main-sales-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div class="two-column-layout grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Best Selling -->
+    <div class="chart-card bg-white p-4 rounded shadow" style="box-shadow: var(--card-shadow);">
+      <div class="chart-header flex justify-between items-center mb-4">
+        <div class="chart-title text-lg font-semibold">Best Selling</div>
+        <div class="text-gray-600 text-sm">This Month</div>
+      </div>
+      <div class="card-title text-2xl font-bold">$<%= bestSelling.length > 0 ? bestSelling[0].sales.toFixed(2) : 0 %></div>
+      <div class="card-subtitle text-gray-600 text-sm mb-4">Total Sales</div>
+      <div class="flex justify-center">
+        <div style="width: 200px; height: 200px;">
+          <canvas id="doughnut-chart"></canvas>
+        </div>
+      </div>
+      <div class="text-center mt-4">
+        <div class="font-semibold text-lg" id="top-product-name"><%= bestSelling.length > 0 ? bestSelling[0].name : 'N/A' %></div>
+        <div class="text-gray-600 mt-1" id="top-product-sales">$<%= bestSelling.length > 0 ? bestSelling[0].sales.toFixed(2) : 0 %> Sales</div>
+      </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="recent-orders bg-white p-4 rounded shadow" style="box-shadow: var(--card-shadow);">
+      <div class="recent-orders-header flex justify-between items-center mb-4">
+        <div class="chart-title text-lg font-semibold">Recent Orders</div>
+        <a href="/admin/orders" class="view-all text-blue-600 text-sm">View All</a>
+      </div>
+      <table class="min-w-full">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="py-2 px-4 text-left text-gray-600 text-sm font-medium">Customer</th>
+            <th class="py-2 px-4 text-left text-gray-600 text-sm font-medium">Date</th>
+            <th class="py-2 px-4 text-left text-gray-600 text-sm font-medium">Total</th>
+            <th class="py-2 px-4 text-left text-gray-600 text-sm font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% recentOrders.forEach(order => { %>
+            <tr class="border-b">
+              <td class="py-2 px-4"><%= order.user.full_name %></td>
+              <td class="py-2 px-4"><%= new Date(order.createdAt).toLocaleDateString('en-GB') %></td>
+              <td class="py-2 px-4">$<%= order.totalAmount.toFixed(2) %></td>
+              <td class="py-2 px-4">
+                <span class="status-badge <%= order.items[0].status === 'DELIVERED' ? 'status-completed' : 'status-processing' %>">
+                  <%= order.items[0].status === 'DELIVERED' ? 'Completed' : 'Processing' %>
+                </span>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top Lists -->
+  <div class="top-lists-container grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+    <div class="top-list-card bg-white p-4 rounded shadow" style="box-shadow: var(--card-shadow);">
+      <h3 class="top-list-title text-lg font-semibold mb-4">Best Selling Products (Top 3)</h3>
+      <ul class="top-list">
+        <% bestSelling.forEach((item, index) => { %>
+          <li class="top-list-item flex justify-between py-2 border-b border-gray-200">
+            <span class="top-list-name font-medium"><%= item.name %></span>
+            <span class="top-list-value text-blue-600 font-semibold">$<%= item.sales.toFixed(2) %></span>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Sales Chart
+      const salesChartCtx = document.getElementById('sales-chart').getContext('2d');
+      new Chart(salesChartCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            data: [100, 200, 150, 300, 250, <%= totalSales / 6 %>],
+            backgroundColor: '#4361ee',
+            borderRadius: 4,
+            barThickness: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } }
+        }
+      });
+
+      // Customers Chart
+      const customersChartCtx = document.getElementById('customers-chart').getContext('2d');
+      new Chart(customersChartCtx, {
+        type: 'line',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            data: [10, 20, 15, 30, 25, <%= totalCustomers / 6 %>],
+            borderColor: '#4361ee',
+            tension: 0.4,
+            pointRadius: 0,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } }
+        }
+      });
+
+      // Doughnut Chart
+      const doughnutChartCtx = document.getElementById('doughnut-chart').getContext('2d');
+      new Chart(doughnutChartCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Top Product', 'Others'],
+          datasets: [{
+            data: [<%= bestSelling.length > 0 ? bestSelling[0].sales : 0 %>, <%= totalSales - (bestSelling.length > 0 ? bestSelling[0].sales : 0) %>],
+            backgroundColor: ['#4361ee', '#e9ecef'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '75%',
+          plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+      });
+
+      // Main Sales Chart
+      const mainSalesChartCtx = document.getElementById('main-sales-chart').getContext('2d');
+      new Chart(mainSalesChartCtx, {
+        type: 'line',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            label: 'Sales',
+            data: [100, 200, 150, 300, 250, <%= totalSales / 6 %>],
+            borderColor: '#4361ee',
+            backgroundColor: 'rgba(67, 97, 238, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { borderDash: [5, 5] } } }
+        }
+      });
+    });
+
+    const style = document.createElement('style');
+    style.textContent = `
+      :root {
+        --primary-color: #4361ee;
+        --secondary-color: #3f37c9;
+        --success-color: #4caf50;
+        --warning-color: #ff9800;
+        --danger-color: #f44336;
+        --light-color: #f8f9fa;
+        --dark-color: #343a40;
+        --border-color: #dee2e6;
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+      .status-completed { background-color: #e8f5e9; color: #4caf50; }
+      .status-processing { background-color: #e3f2fd; color: #2196f3; }
+    `;
+    document.head.appendChild(style);
+  </script>
+</div>

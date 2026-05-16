@@ -1,0 +1,162 @@
+<!-- Page Title and Breadcrumb -->
+<div class="bg-gray-100 py-7 px-4">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-xl font-bold mb-2">Reset password</h1>
+    <nav class="text-sm text-gray-600">
+      <a href="/" class="hover:underline font-medium">Nutrixo</a> / <span>Reset Password</span>
+    </nav>
+  </div>
+</div>
+
+<!-- Reset Password Form -->
+<main class="flex-grow flex items-center justify-center px-4 py-10 min-h-[calc(100vh-12rem)] mt-[-110px]">
+  <div class="max-w-md w-full">
+    <form class="space-y-6" >
+      
+      <div>
+        <label for="newPassword" class="block text-sm font-medium text-gray-700">New password</label>
+        <input
+          type="password"
+          id="newPassword"
+          name="newPassword"
+          required
+          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
+        />
+      </div>
+      <div id="error1" class="error-class"></div>
+      <div>
+        <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          required
+          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
+        />
+      </div>
+      <div id="error2" class="error-class"></div>
+      <div>
+        <button
+          type="submit"
+          class="w-full bg-black text-white font-medium py-2 rounded-md hover:bg-gray-800 transition duration-200"
+        >
+          CHANGE PASSWORD
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<style>
+  .error-class {
+    display: none;
+    color: red;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+</style>
+
+<script>
+
+const newPassword =  document.getElementById('newPassword')
+const confirmPassword = document.getElementById('confirmPassword')
+const error1 = document.getElementById('error1')
+const error2 = document.getElementById('error2')
+const form = document.querySelector('form')
+
+const passPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+
+function debounce(fn,delay=500){
+  let timeout
+  return function (...args){
+    clearTimeout(timeout)
+    timeout = setTimeout(()=>fn.apply(this,args),delay)
+  }
+}
+
+
+function passwordValidate(e){
+    const passVal = newPassword.value
+    const confirmVal = confirmPassword.value
+    if(e.target.id === 'newPassword'){
+      if(passVal === ''){
+        error1.style.display = 'block'
+        error1.innerHTML = 'Password cannot be empty'
+      }else if(!passPattern.test(passVal)){
+        error1.style.display = 'block'
+        error1.innerHTML = 'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character'
+      }else{
+        error1.style.display = 'none'
+        error1.innerHTML = ''
+      }
+    } 
+    if(e.target.id ==='confirmPassword'){
+      if(confirmVal===''){
+        error2.style.display = 'block'
+        error2.innerHTML = 'Please confirm your password'
+      }else if (passVal !== confirmVal){
+        error2.style.display = 'block'
+        error2.innerHTML = 'Passwords are not matching'
+      } else {
+        error2.style.display = 'none'
+        error2.innerHTML =''
+      }
+    }
+  }
+
+  const debounceValidate = debounce(passwordValidate,500)
+
+newPassword.addEventListener('input',passwordValidate)
+confirmPassword.addEventListener('input',debounceValidate)
+
+form.addEventListener('submit',async function(e){
+  e.preventDefault()
+  passwordValidate({target:newPassword})
+  passwordValidate({target:confirmPassword})
+  if(error1.style.display === 'block' || error2.style.display === 'block'){
+    return
+  }
+
+  const data = {
+    newPass: newPassword.value,
+    confirmPass: confirmPassword.value
+  }
+
+  try {
+    const res = await fetch('/auth/reset-password',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify(data)
+    })
+
+    const result = await res.json()
+
+    if(res.ok){
+      Swal.fire({
+        icon:'success',
+        title:'Password changed',
+        text: result.message || 'Your password updated successfully'
+      }).then(()=>{
+        window.location.href = '/auth/login'
+      })
+    }else{
+      Swal.fire({
+        icon:'error',
+        title:'error',
+        text:result.message || 'Something went wrong. Please try again'
+      })
+    }
+
+  } catch (err) {
+    Swal.fire({
+      icon:'error',
+      title:'error',
+      text:'Network error. Please try again later'
+    })
+  }
+})
+
+
+</script>

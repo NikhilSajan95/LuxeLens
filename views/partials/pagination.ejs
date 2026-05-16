@@ -1,0 +1,44 @@
+<%
+const qs = Object.entries(query || {})
+  .filter(([k, v]) => v && k !== 'page')
+  .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+  .join('&');
+
+const groupSize = 5;
+const currentGroup = Math.ceil(currentPage / groupSize);
+const totalGroups = Math.ceil(totalPages / groupSize);
+
+const startPage = (currentGroup - 1) * groupSize + 1;
+const endPage = Math.min(currentGroup * groupSize, totalPages);
+%>
+
+<div class="flex justify-center mt-6 space-x-2">
+
+  <% function pageLink(p) { %>
+    <a href="?page=<%= p %><%= qs ? '&' + qs : '' %>"
+       class="px-3 py-1 border rounded-md
+        <%= p === currentPage ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100' %>">
+      <%= p %>
+    </a>
+  <% } %>
+
+  <!-- Previous Group -->
+  <% if (currentGroup > 1) { %>
+    <a href="?page=<%= startPage - groupSize %><%= qs ? '&' + qs : '' %>"
+       class="px-3 py-1 border rounded-md bg-gray-100 hover:bg-gray-200">
+      Prev
+    </a>
+  <% } %>
+
+  <!-- Pages in this group -->
+  <% for (let i = startPage; i <= endPage; i++) { %>
+    <%= pageLink(i) %>
+  <% } %>
+
+  <!-- Next Group -->
+  <% if (currentGroup < totalGroups) { %>
+    <a href="?page=<%= endPage + 1 %><%= qs ? '&' + qs : '' %>"
+       class="px-3 py-1 border rounded-md bg-gray-100 hover:bg-gray-200">
+      Next
+    </a>
+  <% } %>

@@ -1,0 +1,233 @@
+<div class="flex min-h-screen bg-gray-50">
+  <!-- Sidebar -->
+  <%- include('../partials/userSidebar') %>
+
+  <!-- Page Content -->
+  <div class="flex-1 flex justify-center items-start p-10">
+    <div class="w-full max-w-6xl bg-white shadow-md rounded-lg p-10 min-h-[600px]">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-gray-800">Shipping address</h2>
+        
+        <div class="flex items-center gap-4">
+          <% if (addresses && addresses.length > 0) { %>
+            <!-- Dropdown for selecting address -->
+            <select id="selectedAddress" 
+                    class="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-black">
+              <% addresses.forEach((address, idx) => { %>
+                <option value="<%= address._id %>" <%= idx === 0 ? 'selected' : '' %>>
+                  <%= address.fullname %> - <%= address.district %>
+                </option>
+              <% }) %>
+            </select>
+          <% } %>
+
+          <!-- Add New Button -->
+          <button type="button" class="add-new-btn flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition">
+            <span class="text-lg">+</span> Add new
+          </button>
+        </div>
+      </div>
+
+      <% if (addresses && addresses.length > 0) { %>
+        <!-- Address list -->
+        <div class="space-y-6">
+          <% addresses.forEach(address => { %>
+            <div class="border rounded-lg p-6 shadow-sm" id="address-<%= address._id %>">
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-500">Street Address</label>
+                  <input type="text" value="<%= address.address %>" 
+                         class="w-full border rounded-md px-3 py-2 editable" 
+                         data-field="address" readonly>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-500">District</label>
+                  <input type="text" value="<%= address.district %>" 
+                         class="w-full border rounded-md px-3 py-2 editable" 
+                         data-field="district" readonly>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label class="block text-sm text-gray-500">Full Name</label>
+                  <input type="text" value="<%= address.fullname %>" 
+                         class="w-full border rounded-md px-3 py-2 editable" 
+                         data-field="fullname" readonly>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-500">Mobile</label>
+                  <input type="text" value="<%= address.mobile %>" 
+                         class="w-full border rounded-md px-3 py-2 editable" 
+                         data-field="mobile" readonly>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label class="block text-sm text-gray-500">State</label>
+                  <input type="text" value="<%= address.state %>" 
+                         class="w-full border rounded-md px-3 py-2 editable" 
+                         data-field="state" readonly>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-500">Pin Code</label>
+                  <input type="text" value="<%= address.pincode %>" 
+                         class="w-full border rounded-md px-3 py-2 editable" 
+                         data-field="pincode" readonly>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label class="block text-sm text-gray-500">Country</label>
+                  <input type="text" value="<%= address.country %>" 
+                         class="w-full border rounded-md px-3 py-2 editable" 
+                         data-field="country" readonly>
+                </div>
+              </div>
+
+              <!-- Buttons -->
+              <div class="flex gap-4 mt-6">
+                <% if (address.is_Default) { %>
+                  <span class="px-3 py-1 bg-green-500 text-white rounded">Default</span>
+                <% } else { %>
+                  <button type="button" 
+                          class="default-btn px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-700"
+                          data-id="<%= address._id %>">
+                    Make Default
+                  </button>
+                <% } %>
+
+                <button type="button" 
+                        class="edit-btn px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-gray-800"
+                        data-id="<%= address._id %>">
+                  Edit
+                </button>
+
+                <button type="button" 
+                        class="delete-btn px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                        data-id="<%= address._id %>">
+                  Delete
+                </button>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <!-- If no addresses -->
+<div class="flex flex-col items-center justify-center py-5 text-center">
+  
+  <!-- Lottie Animation -->
+  <dotlottie-wc
+    src="https://lottie.host/d3fc8aff-8670-4850-ab07-c21624e934ad/q64xZVENGn.lottie"
+    style="width: 280px; height: 280px"
+    autoplay
+    loop
+  ></dotlottie-wc>
+
+  <!-- Message -->
+  <p class="mt-6 text-gray-600 text-lg font-medium">
+    No address found. Add a new one to continue.
+  </p>
+
+</div>
+
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- <%-include('../partials/addressModal') %>
+<% if (addresses && addresses.length > 0 && totalPages > 1) { %>
+  <%- include('../partials/pagination.ejs', { currentPage, totalPages, query }) %>
+<% } %> -->
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/logout.js"></script>
+<script src="/js/addressModal.js"></script>
+
+<script>
+  toastr.options = {
+    "positionClass": "toast-bottom-right"
+  };
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // ✅ DELETE with Swal
+    document.querySelectorAll(".delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        Swal.fire({
+          title: "Are you sure?",
+          text: "This address will be permanently deleted.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "Yes, delete it!"
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            try {
+              const res = await fetch(`/profile/address/${btn.dataset.id}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" }
+              });
+              const data = await res.json();
+
+              if (data.success) {
+                toastr.success(data.message || "Address deleted successfully!");
+                setTimeout(() => window.location.reload(), 1000);
+              } else {
+                toastr.error(data.message || "Failed to delete address");
+              }
+            } catch {
+              toastr.error("Something went wrong. Try again!");
+            }
+          }
+        });
+      });
+    });
+
+    // ✅ MAKE DEFAULT
+    document.querySelectorAll(".default-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        try {
+          const res = await fetch(`/profile/address/${btn.dataset.id}/default`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" }
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            toastr.success(data.message || "Default address set!");
+            setTimeout(() => window.location.reload(), 500);
+          } else {
+            toastr.error(data.message || "Failed to set default address");
+          }
+        } catch {
+          toastr.error("Something went wrong. Try again!");
+        }
+      });
+    });
+
+    // ✅ Dropdown scroll
+    const dropdown = document.getElementById("selectedAddress");
+    if (dropdown) {
+      dropdown.addEventListener("change", (e) => {
+        const addressId = e.target.value;
+        const selectedCard = document.getElementById(`address-${addressId}`);
+        if (selectedCard) {
+          selectedCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    }
+  });
+</script>

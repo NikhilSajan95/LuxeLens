@@ -1,0 +1,380 @@
+<main class="flex-1 p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-semibold">Brand Management</h1>
+    <button onclick="document.getElementById('addBrandModal').classList.remove('hidden')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+      + Add Brand
+    </button>
+  </div>
+
+  <form method="GET" class="mb-6 flex gap-2">
+    <input
+      type="text"
+      name="search"
+      placeholder="Search brands..."
+      value="<%= search %>"
+      class="px-4 py-2 border border-gray-300 rounded w-full"
+    />
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Search</button>
+    <% if (search) { %>
+      <a href="/admin/brands" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Clear</a>
+    <% } %>
+  </form>
+
+  <table class="min-w-full bg-white rounded shadow overflow-hidden">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="py-3 px-4 text-left">S.No</th>
+        <th class="py-3 px-4 text-left">Name</th>
+        <th class="py-3 px-4 text-left">Description</th>
+        <th class="py-3 px-4 text-left">Image</th>
+        <th class="py-3 px-4 text-left">Status</th>
+        <th class="py-3 px-4 text-left">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="text-gray-700">
+      <% if (brands.length === 0) { %>
+        <tr>
+          <td colspan="6" class="text-center py-4 text-gray-500">No brands found.</td>
+        </tr>
+      <% } else { %>
+        <% brands.forEach((brand, index) => { %>
+          <tr class="border-b hover:bg-gray-100">
+            <td class="py-2 px-4"><%= (currentPage - 1) * 10 + index + 1 %></td>
+            <td class="py-2 px-4"><%= brand.name %></td>
+            <td class="py-2 px-4 max-w-xs whitespace-normal break-words"><%= brand.description %></td>
+            <td class="py-2 px-4">
+                <img src="<%= brand.image ? brand.image : '/placeholder-image.jpg' %>" alt="<%= brand.name %>" class="w-16 h-16 object-contain bg-gray-50 rounded">
+            </td>
+            
+            <td class="py-2 px-4">
+                <span class="px-2 py-1 text-xs font-semibold rounded-full <%= brand.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                    <%= brand.isActive ? 'Active' : 'Inactive' %>
+                </span>
+            </td>
+
+            <td class="py-2 px-4 space-x-2 whitespace-nowrap">
+              <button onclick="openEditModal('<%= brand._id %>', '<%= brand.name %>', '<%= brand.description %>', '<%= brand.image %>')" class="text-blue-600 hover:underline">
+                <i data-lucide="edit"></i>
+              </button>
+
+              <button onclick="handleToggle(event, '<%= brand._id %>')" class="hover:underline <%= brand.isActive ? 'text-green-600' : 'text-gray-400' %>" title="<%= brand.isActive ? 'Deactivate' : 'Activate' %>">
+                <i data-lucide="<%= brand.isActive ? 'eye' : 'eye-off' %>"></i>
+              </button>
+
+              <form action="/admin/brands/delete/<%= brand._id %>" method="POST" class="inline" onsubmit="confirmDelete(event, this)">
+                <button type="submit" class="text-red-600 hover:underline">
+                  <i data-lucide="trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+
+  <% if (totalPages > 1) { %>
+    <div class="mt-6 flex justify-center space-x-2">
+      <% for (let i = 1; i <= totalPages; i++) { %>
+        <a href="?page=<%= i %><%= search ? `&search=${search}` : '' %>"
+           class="px-3 py-1 rounded <%= currentPage === i ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300' %>">
+          <%= i %>
+        </a>
+      <% } %>
+    </div>
+  <% } %>
+</main>
+
+<div id="addBrandModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+    <h2 class="text-lg font-semibold mb-4 text-center">Add Brand</h2>
+
+    <form action="/admin/brands/add" method="POST" enctype="multipart/form-data" id="addBrandForm" onsubmit="submitAddForm(event)">
+      
+      <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+      <input type="text" name="name" id="brandName" placeholder="Brand Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+      <span id="brandNameError" class="hidden w-full min-h-[42px] mt-2 mb-4 px-3 border border-red-500 rounded-md text-red-500 text-sm text-center flex items-center justify-center"></span>
+      
+      <label class="block text-sm font-medium text-gray-700 mb-1 mt-2">Description</label>
+      <textarea name="description" id="brandDescription" placeholder="Description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" required></textarea>
+      <span id="descriptionError" class="hidden w-full min-h-[42px] mt-2 mb-4 px-3 border border-red-500 rounded-md text-red-500 text-sm text-center flex items-center justify-center"></span>
+
+      <input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-md mb-4">
+
+      <div class="flex justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('addBrandModal').classList.add('hidden')" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Add</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<div id="editBrandModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+    
+    <h2 class="text-lg font-semibold mb-4">Edit Brand</h2>
+
+    <form id="editBrandForm" method="POST" enctype="multipart/form-data" onsubmit="submitEditForm(event)">
+      
+      <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+
+      <input type="text" id="editBrandName" name="name" class="w-full px-4 py-2 border border-gray-300 rounded mb-2" required>
+
+      <span id="editBrandNameError" class="hidden w-full min-h-[42px] mt-2 mb-4 px-3 border border-red-500 rounded-md text-red-500 text-sm text-center flex items-center justify-center"></span>
+
+      <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+
+      <textarea id="editBrandDescription" name="description" class="w-full px-4 py-2 border border-gray-300 rounded mb-2" required></textarea>
+
+      <span id="editDescriptionError" class="hidden w-full min-h-[42px] mt-2 mb-4 px-3 border border-red-500 rounded-md text-red-500 text-sm text-center flex items-center justify-center"></span>
+
+      <div class="mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Current Image</label>
+
+        <img id="editBrandImagePreview" src="" alt="Current Brand Image" class="w-16 h-16 object-contain bg-gray-50 rounded border hidden">
+      </div>
+
+      <label class="block text-sm font-medium text-gray-700 mb-1">Upload New Image (Optional)</label>
+
+      <input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded mb-4">
+
+      <div class="flex justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('editBrandModal').classList.add('hidden')" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Cancel</button>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Update</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+  // 1. Open Edit Modal (Populates the static modal)
+  function openEditModal(id, name, description, image) {
+    const modal = document.getElementById('editBrandModal');
+    const form = document.getElementById('editBrandForm');
+    const nameInput = document.getElementById('editBrandName');
+    const descInput = document.getElementById('editBrandDescription');
+    const imgPreview = document.getElementById('editBrandImagePreview');
+
+    // Populate fields
+    nameInput.value = name;
+    descInput.value = description;
+    
+    // Set form action dynamically
+    form.action = `/admin/brands/edit/${id}`;
+
+    // Handle Image Preview
+    if (image && image !== 'undefined') {
+        imgPreview.src = image;
+        imgPreview.classList.remove('hidden');
+    } else {
+        imgPreview.classList.add('hidden');
+    }
+
+    // Show Modal
+    modal.classList.remove('hidden');
+  }
+
+  // 2. Submit Edit Form
+  function submitEditForm(event) {
+      event.preventDefault();
+
+  const form = document.getElementById('editBrandForm');
+  const formData = new FormData(form);
+  const url = form.action;
+  const btn = form.querySelector('button[type="submit"]');
+
+  const brandInput = document.getElementById('editBrandName');
+  const descInput = document.getElementById('editBrandDescription');
+
+  const brandError = document.getElementById('editBrandNameError');
+  const descError = document.getElementById('editDescriptionError');
+
+  const brandValue = brandInput.value.trim();
+  const descValue = descInput.value.trim();
+
+  // Clear old errors
+  brandError.classList.add('hidden');
+  descError.classList.add('hidden');
+
+  brandError.textContent = '';
+  descError.textContent = '';
+
+  let isValid = true;
+
+  // Brand Validation
+  if (brandValue.length < 2 || brandValue.length > 10) {
+    brandError.classList.remove('hidden');
+    brandError.textContent = 'Brand name must be 2–10 characters';
+    isValid = false;
+  }
+
+  if (descValue.length < 20 || descValue.length > 200) {
+    descError.classList.remove('hidden');
+    descError.textContent = 'Description must be 20–200 characters';
+    isValid = false;
+  }
+
+  if (!isValid) return;
+    
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+
+    fetch(url, {
+      method: 'PUT',
+      body: formData,
+      headers: {
+          'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('editBrandModal').classList.add('hidden');
+        Swal.fire('Success!', data.message, 'success').then(() => window.location.reload());
+      } else {
+        Swal.fire('Error!', data.message, 'error').then(() => window.location.reload());
+        btn.disabled = false;
+        btn.textContent = 'Update';
+      }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Update';
+    });
+  }
+
+  // 3. Submit Add Form
+  function submitAddForm(event) {
+    event.preventDefault();
+    const form = document.getElementById('addBrandForm');
+    const formData = new FormData(form);
+    const btn = form.querySelector('button[type="submit"]');
+
+    const brandInput = document.getElementById('brandName');
+    const descInput = document.getElementById('brandDescription');
+
+    const brandError = document.getElementById('brandNameError');
+    const descError = document.getElementById('descriptionError');
+
+    const brandValue = brandInput.value.trim();
+    const descValue = descInput.value.trim();
+
+    // Clear old errors
+  brandError.classList.add('hidden');
+  descError.classList.add('hidden');
+
+  brandError.textContent = '';
+  descError.textContent = '';
+
+    let isValid = true;
+
+    if (brandValue.length < 2 || brandValue.length > 10) {
+      brandError.classList.remove('hidden');
+      brandError.textContent = 'Brand name must be 2–10 characters';
+    isValid = false;
+  }
+
+  if (descValue.length < 20 || descValue.length > 200) {
+    descError.classList.remove('hidden');
+    descError.textContent = 'Description must be 20–200 characters';
+    isValid = false;
+  }
+
+  if(!isValid) return
+    
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
+
+    fetch('/admin/brands/add', {
+      method: 'POST',
+      body: formData,
+      headers: {
+          'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('addBrandModal').classList.add('hidden');
+        Swal.fire('Success!', data.message, 'success').then(() => window.location.reload());
+      } else {
+        Swal.fire('Error!', data.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Add';
+      }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Add';
+    });
+  }
+
+  // 4. Handle Toggle
+  function handleToggle(event, id) {
+      event.preventDefault();
+      fetch(`/admin/brands/toggle/${id}`, {
+         method: 'PATCH',
+          headers: {
+          'Accept': 'application/json'
+        }
+        })
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              Swal.fire({
+                  icon: 'success',
+                  title: 'Updated!',
+                  text: data.message,
+                  showConfirmButton: false,
+                  timer: 1500
+              }).then(() => window.location.reload());
+          } else {
+              Swal.fire('Error!', data.message, 'error').then(() => window.location.reload());
+          }
+      })
+      .catch(err => Swal.fire('Error!', 'An unexpected error occurred.', 'error'));
+  }
+
+  // 5. Confirm Delete
+  function confirmDelete(event, form) {
+      event.preventDefault();
+      const url = form.action;
+      Swal.fire({
+          title: 'Are you sure?',
+          text: "You won't be able to revert this!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+          if (result.isConfirmed) {
+              fetch(url, {
+                 method: 'PATCH',
+                 headers: {
+                  'Accept': 'application/json'
+                 } 
+                })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      Swal.fire('Deleted!', data.message, 'success')
+                          .then(() => window.location.reload());
+                  } else {
+                      Swal.fire('Error!', data.message, 'error');
+                  }
+              })
+              .catch(err => Swal.fire('Error!', 'An unexpected error occurred.', 'error'));
+          }
+      });
+  }
+
+  lucide.createIcons();
+</script>

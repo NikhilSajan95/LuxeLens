@@ -1,0 +1,213 @@
+<body class="flex flex-col min-h-screen">
+  <!-- Page Title and Breadcrumb -->
+  <div class="bg-gray-100 py-7 px-4">
+    <div class="max-w-7xl mx-auto">
+      <h1 class="text-xl font-bold mb-2">Log In</h1>
+      <nav class="text-sm text-gray-600">
+        <a href="/" class="hover:underline font-medium">Nutrixo</a> / <span>Log In</span>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main Login Form -->
+  <main class="flex-grow flex justify-center items-start py-12 px-4 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md bg-white p-6 sm:p-8 rounded-md shadow-sm border">
+
+      <!-- Google Login Button -->
+      <a href="/auth/google" type="button" class="w-full flex items-center justify-center border border-gray-300 rounded-md py-4 text-sm mb-4 hover:bg-gray-50">
+        <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5 mr-2" />
+        Continue with Google
+      </a>
+
+      <div class="text-center text-gray-500 mb-4">OR</div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="space-y-4 mt-3">
+        <!-- Email -->
+        <div>
+          <label for="email" class="block text-sm font-medium mb-1">Email</label>
+          <input type="email" name="email" id="email"  placeholder="Enter email"
+                 class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2" />
+          <div id="errorEmail" class="error-class"></div>
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label for="password" class="block text-sm font-medium mb-1">Password</label>
+          <div class="relative">
+            <input type="password" name="password" id="password"  placeholder="Enter password"
+                   class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 pr-10" />
+
+            <!-- Toggle Eye Button -->
+            <button type="button" id="togglePassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-500 hover:text-gray-700">
+              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                   viewBox="0 0 24 24" stroke="currentColor">
+                <!-- Default: eye -->
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 
+                         9.542 7-1.274 4.057-5.064 7-9.542 7
+                         -4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          </div>
+
+          <div id="errorPassword" class="error-class mt-1"></div>
+          <div class="text-right mt-1">
+            <a href="/auth/forgot-password" class="text-xs text-blue-600 hover:underline">Forgot password?</a>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit"
+                class="w-full bg-gray-900 text-white py-2 rounded-md hover:bg-gray-800 transition">
+          Log In
+        </button>
+      </form>
+
+      <!-- Sign up prompt -->
+      <p class="mt-6 text-center text-sm text-gray-600">
+        Don’t have an account?
+        <a href="/auth/signup" class="text-blue-600 hover:underline">Sign Up</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- SweetAlert -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    .error-class {
+      display: block;
+      min-height: 16px; 
+      color: red;
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+    .input-error {
+      border-color: red !important;
+    }
+    .input-success {
+      border-color: green !important;
+    }
+  </style>
+
+  <script>
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorEmail = document.getElementById('errorEmail');
+    const errorPassword = document.getElementById('errorPassword');
+    const loginForm = document.getElementById('loginForm');
+    const togglePassword = document.getElementById('togglePassword');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    function validateEmail() {
+      const emailVal = emailInput.value.trim();
+      const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailVal) {
+        errorEmail.textContent = 'Please enter your email';
+        emailInput.classList.add('input-error');
+        emailInput.classList.remove('input-success');
+      } else if (!emailPattern.test(emailVal)) {
+        errorEmail.textContent = 'Invalid email format';
+        emailInput.classList.add('input-error');
+        emailInput.classList.remove('input-success');
+      } else {
+        errorEmail.textContent = '';
+        emailInput.classList.remove('input-error');
+        emailInput.classList.add('input-success');
+      }
+    }
+
+    function validatePassword() {
+      const passVal = passwordInput.value;
+      if (!passVal) {
+        errorPassword.textContent = 'Please enter your password';
+        passwordInput.classList.add('input-error');
+        passwordInput.classList.remove('input-success');
+      } else if (passVal.length < 6) {
+        errorPassword.textContent = 'Password must be at least 6 characters';
+        passwordInput.classList.add('input-error');
+        passwordInput.classList.remove('input-success');
+      } else {
+        errorPassword.textContent = '';
+        passwordInput.classList.remove('input-error');
+        passwordInput.classList.add('input-success');
+      }
+    }
+
+    emailInput.addEventListener('input', validateEmail);
+    passwordInput.addEventListener('input', validatePassword);
+
+    togglePassword.addEventListener('click', () => {
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        eyeIcon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7 
+                   .387-1.232 1.01-2.356 1.822-3.292M9.88 9.88a3 3 0 
+                   014.24 4.24m-4.24-4.24L4.22 4.22m9.9 9.9l5.9 5.9"/>`;
+      } else {
+        passwordInput.type = "password";
+        // eye icon
+        eyeIcon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 
+                   9.542 7-1.274 4.057-5.064 7-9.542 7
+                   -4.477 0-8.268-2.943-9.542-7z" />`;
+      }
+    });
+
+    loginForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      validateEmail();
+      validatePassword();
+
+      if (errorEmail.textContent || errorPassword.textContent) {
+        return;
+      }
+
+      const email = emailInput.value;
+      const password = passwordInput.value;
+
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({email, password})
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          window.location.href = data.redirect
+        } else {
+          Swal.fire({
+            icon:'error',
+            title:'Login failed',
+            text:data.message || 'User is blocked by admin'
+          });
+        }
+      } catch(err) {
+        Swal.fire({
+          icon:'error',
+          title:'Error',
+          text:'Could not connect to server'
+        })
+      }
+    });
+
+    const urlParams = new URLSearchParams(window.location.search)
+    if(urlParams.get('blocked') === 'true') {
+      Swal.fire({
+        icon:'error',
+        title:'Login failed',
+        text:'Your account has been blocked by the admin'
+      })
+    }
+  </script>
+</body>

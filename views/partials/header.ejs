@@ -1,0 +1,217 @@
+<div class="w-full bg-black text-white text-center py-2 text-sm">
+  Free delivery on orders above ₹300. Order now
+</div>
+
+<header class="bg-white py-4 px-6 shadow-sm relative z-50">
+  <div class="container mx-auto flex items-center justify-between">
+
+    <button id="menuBtn" class="md:hidden text-gray-700 focus:outline-none">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+
+    <a href="/">
+      <div class="flex items-center">
+        <img class="w-24 md:w-28 h-auto max-w-xs" src="/public/Images/luxlens_logo.png" alt="Logo" />
+      </div>
+    </a>
+
+    <nav class="hidden md:flex space-x-6">
+      <a href="/" class="w-32 text-center text-gray-700 hover:text-gray-900">Home</a>
+
+      <div class="relative w-32 group">
+        <button class="w-full flex justify-center items-center text-gray-700 hover:text-gray-900">
+          Category
+          <svg class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div class="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5
+                    opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+          <a href="/products?category=All" class="block px-4 py-2 hover:bg-gray-100">All</a>
+          <% if (locals.categories && locals.categories.length) { %>
+            <% locals.categories.forEach(cat => { %>
+              <a href="/products?category=<%= cat %>" class="block px-4 py-2 hover:bg-gray-100"><%= cat %></a>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="relative w-32 group">
+        <button class="w-full flex justify-center items-center text-gray-700 hover:text-gray-900">
+          Brands
+          <svg class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div class="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5
+                    opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+          <a href="/products?brand=All" class="block px-4 py-2 hover:bg-gray-100">All</a>
+          <% if (locals.brands && locals.brands.length) { %>
+            <% locals.brands.forEach(brand => { %>
+              <a href="/products?brand=<%= brand %>" class="block px-4 py-2 hover:bg-gray-100"><%= brand %></a>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+
+      <a href="/about" class="w-32 text-center text-gray-700 hover:text-gray-900">About</a>
+      <a href="/contact" class="w-32 text-center text-gray-700 hover:text-gray-900">Contact</a>
+    </nav>
+
+      <form action="/products" method="GET" class="relative hidden sm:block">
+        <input
+          id="searchInput"
+          name="q"
+          type="text"
+          placeholder="Search products"
+          value="<%= locals.searchQuery || (locals.query && locals.query.q) || '' %>"
+          class="pl-10 pr-10 py-2 rounded-md border border-gray-300 
+                 focus:ring-1 focus:ring-gray-400 w-48"
+        />
+
+        <button type="submit" class="absolute left-3 top-2.5 text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          id="clearSearch"
+          class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 hidden"
+          aria-label="Clear search"
+        >
+          ✕
+        </button>
+      </form>
+
+
+      <a href="/wishlist" class="relative text-gray-700 hover:text-gray-900">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+        <span id="wishlistText"
+          class="absolute <%= (typeof wishlistLength !== 'undefined' && wishlistLength) ? 'block' : 'hidden' %> 
+                 -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 
+                 flex items-center justify-center rounded-full">
+          <%= typeof wishlistLength !== 'undefined' ? wishlistLength : 0 %>
+        </span>
+      </a>
+
+      <a href="/cart" class="relative text-gray-700 hover:text-gray-900">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+        <span id="cartText"
+          class="absolute <%= (typeof cartLength !== 'undefined' && cartLength) ? 'block' : 'hidden' %> 
+                 -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 
+                 flex items-center justify-center rounded-full">
+          <%= typeof cartLength !== 'undefined' ? cartLength : 0 %>
+        </span>
+      </a>
+
+      <a href="/profile" class="text-gray-700 hover:text-gray-900">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      </a>
+    </div>
+
+  </div>
+
+  <div
+    id="mobileMenu"
+    class="md:hidden absolute top-full left-0 w-full bg-white border-t shadow-lg
+           max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+
+    <nav class="flex flex-col px-6 py-4 space-y-4 text-gray-700">
+
+      <a href="/" class="py-2 border-b">Home</a>
+
+      <details class="border-b pb-2">
+        <summary class="cursor-pointer font-semibold py-2">Category</summary>
+        <div class="pl-4 space-y-2">
+          <a href="/products?category=All">All</a>
+          <% if (locals.categories && locals.categories.length) { %>
+            <% locals.categories.forEach(cat => { %>
+              <a href="/products?category=<%= cat %>"><%= cat %></a>
+            <% }) %>
+          <% } %>
+        </div>
+      </details>
+
+      <details class="border-b pb-2">
+        <summary class="cursor-pointer font-semibold py-2">Brands</summary>
+        <div class="pl-4 space-y-2">
+          <a href="/products?brand=All">All</a>
+          <% if (locals.brands && locals.brands.length) { %>
+            <% locals.brands.forEach(brand => { %>
+              <a href="/products?brand=<%= brand %>"><%= brand %></a>
+            <% }) %>
+          <% } %>
+        </div>
+      </details>
+
+      <a href="/about" class="py-2 border-b">About</a>
+      <a href="/contact" class="py-2">Contact</a>
+
+    </nav>
+  </div>
+</header>
+
+<style>
+  .group:hover .group-hover\:opacity-100 {
+    transition-delay: 150ms;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar { width: 4px; }
+  .overflow-y-auto::-webkit-scrollbar-track { background: #f1f1f1; }
+  .overflow-y-auto::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+  .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: #555; }
+</style>
+
+<script>
+  const menuBtn = document.getElementById('menuBtn')
+  const mobileMenu = document.getElementById('mobileMenu')
+
+  let isOpen = false
+
+  menuBtn.addEventListener('click', () => {
+    if (!isOpen) {
+      mobileMenu.style.maxHeight = mobileMenu.scrollHeight + 'px'
+      isOpen = true
+    } else {
+      mobileMenu.style.maxHeight = '0px'
+      isOpen = false
+    }
+  })
+
+  const searchInput = document.getElementById('searchInput')
+  const clearBtn = document.getElementById('clearSearch')
+
+  if (searchInput && clearBtn) {
+    // Initial toggle (page reload with query)
+    clearBtn.classList.toggle('hidden', !searchInput.value)
+
+    // Toggle while typing
+    searchInput.addEventListener('input', () => {
+      clearBtn.classList.toggle('hidden', !searchInput.value)
+    })
+
+    // Clear search
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = ''
+      window.location.href = '/products'
+    })
+  }
+</script>
+
+<script src="/js/badgeUpdater.js"></script>

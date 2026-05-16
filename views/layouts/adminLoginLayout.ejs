@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= typeof title !== 'undefined' ? title : 'Admin Login' %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="flex flex-col min-h-screen">
+  <main class="flex-grow">
+    <%- body %>
+  </main>
+</body>
+</html>
+
+<script>
+
+<% if (success_msg && success_msg.length > 0) { %>
+
+            Swal.fire({
+                title: "Success!",
+                text: "<%= success_msg[0] %>",
+                icon: "success",
+                timer: 2000, // Auto-close after 2 seconds
+                showConfirmButton: false
+            });
+        <% } %>
+
+        // Check for error flash message
+        <% if (error_msg && error_msg.length > 0) { %>
+            Swal.fire({
+                title: "Error!",
+                text: "<%= error_msg[0] %>",
+                icon: "error"
+            });
+        <% } %>
+
+</script>

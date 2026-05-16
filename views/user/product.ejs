@@ -1,0 +1,309 @@
+<body class="bg-gray-50">
+  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <nav class="text-sm mb-6 text-gray-500">
+      <ol class="flex items-center space-x-2">
+        <li><a href="/" class="hover:underline text-gray-600">Home</a></li>
+        <li>/</li>
+        <li class="text-gray-800 font-medium">Products</li>
+      </ol>
+    </nav>
+
+    <!-- <div class="mb-6"> -->
+      <!-- <form id="searchForm" onsubmit="applyFilters(); return false;">
+        <div class="flex items-center gap-2 max-w-xl">
+          <div class="relative flex-1">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search sunglasses..."
+              value="<%= selectedFilters.q || '' %>"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm"
+            />
+            <% if (selectedFilters.q) { %>
+              <button
+                type="button"
+                onclick="clearSearch()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                title="Clear search"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            <% } %>
+          </div>
+          <button
+            type="submit"
+            class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-700 transition"
+          >
+            Search
+          </button>
+        </div>
+      </form> -->
+    <!-- </div> -->
+
+    <div class="flex gap-8">
+
+      <aside class="w-60 flex-shrink-0 hidden md:block">
+        <div class="bg-white rounded-xl shadow p-6 sticky top-4">
+
+          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Category</h2>
+          <ul class="space-y-2 mb-6">
+            <li>
+              <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600 hover:text-gray-900">
+                <input type="radio" name="category" value="All"
+                  <%= !selectedFilters.category ? 'checked' : '' %>
+                  class="accent-gray-900">
+                All
+              </label>
+            </li>
+            <% categories.forEach(c => { %>
+              <li>
+                <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600 hover:text-gray-900">
+                  <input type="radio" name="category" value="<%= c %>"
+                    <%= selectedFilters.category === c ? 'checked' : '' %>
+                    class="accent-gray-900">
+                  <%= c %>
+                </label>
+              </li>
+            <% }) %>
+          </ul>
+
+          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Brand</h2>
+          <select name="brand" class="w-full border border-gray-200 rounded-lg p-2 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-gray-900">
+            <option value="All" <%= !selectedFilters.brand ? 'selected' : '' %>>All Brands</option>
+            <% brands.forEach(b => { %>
+              <option value="<%= b %>" <%= selectedFilters.brand === b ? 'selected' : '' %>><%= b %></option>
+            <% }) %>
+          </select>
+
+          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Color</h2>
+          <select name="color" class="w-full border border-gray-200 rounded-lg p-2 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-gray-900">
+            <option value="All" <%= !selectedFilters.color ? 'selected' : '' %>>All Colors</option>
+            <% colors.forEach(c => { %>
+              <option value="<%= c %>" <%= selectedFilters.color === c ? 'selected' : '' %>><%= c %></option>
+            <% }) %>
+          </select>
+
+          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Size</h2>
+          <select name="size" class="w-full border border-gray-200 rounded-lg p-2 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-gray-900">
+            <option value="All" <%= !selectedFilters.size ? 'selected' : '' %>>All Sizes</option>
+            <% sizes.forEach(s => { %>
+              <option value="<%= s %>" <%= selectedFilters.size === s ? 'selected' : '' %>><%= s %></option>
+            <% }) %>
+          </select>
+
+          <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Price Range</h2>
+          <div class="flex gap-2 items-center mb-3">
+            <input
+              type="number" id="minPrice" min="0" step="100"
+              class="w-1/2 border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+              placeholder="Min"
+              value="<%= selectedFilters.minPrice || '' %>"
+            />
+            <span class="text-gray-400 text-sm">–</span>
+            <input
+              type="number" id="maxPrice" min="0" step="100"
+              class="w-1/2 border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+              placeholder="Max"
+              value="<%= selectedFilters.maxPrice || '' %>"
+            />
+          </div>
+
+          <button
+            onclick="applyFilters()"
+            class="w-full bg-gray-900 text-white py-2 rounded-lg text-sm hover:bg-gray-700 transition mb-3"
+          >
+            Apply Filters
+          </button>
+
+          <% if (selectedFilters.brand || selectedFilters.color || selectedFilters.size ||
+                 selectedFilters.minPrice || selectedFilters.maxPrice || selectedFilters.category) { %>
+            <button
+              onclick="clearFilters()"
+              class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm transition"
+            >
+              Clear Filters
+            </button>
+          <% } %>
+
+        </div>
+      </aside>
+
+      <main class="flex-1 min-w-0">
+
+        <div class="flex justify-between items-center mb-5">
+          <p class="text-sm text-gray-500">
+            <% if (selectedFilters.q) { %>
+              Results for "<strong class="text-gray-800"><%= selectedFilters.q %></strong>" —
+            <% } %>
+            <span class="font-semibold text-gray-800"><%= totalVariants %></span> product<%= totalVariants !== 1 ? 's' : '' %>
+          </p>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-500 hidden sm:block">Sort:</label>
+            <select
+              name="sort"
+              onchange="applyFilters()"
+              class="border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            >
+              <option value="">Default</option>
+              <option value="priceLowHigh" <%= selectedFilters.sort === 'priceLowHigh' ? 'selected' : '' %>>Price: Low to High</option>
+              <option value="priceHighLow" <%= selectedFilters.sort === 'priceHighLow' ? 'selected' : '' %>>Price: High to Low</option>
+              <option value="nameAZ"       <%= selectedFilters.sort === 'nameAZ'       ? 'selected' : '' %>>Name: A → Z</option>
+              <option value="nameZA"       <%= selectedFilters.sort === 'nameZA'       ? 'selected' : '' %>>Name: Z → A</option>
+            </select>
+          </div>
+        </div>
+
+        <% const hasActiveFilters = selectedFilters.brand || selectedFilters.color || selectedFilters.size ||
+              selectedFilters.minPrice || selectedFilters.maxPrice || selectedFilters.category || selectedFilters.q; %>
+        <% if (hasActiveFilters) { %>
+          <div class="flex flex-wrap gap-2 mb-5">
+            <% if (selectedFilters.q) { %>
+              <span class="inline-flex items-center gap-1 bg-gray-900 text-white text-xs px-3 py-1 rounded-full">
+                Search: <%= selectedFilters.q %>
+                <button onclick="clearSearch()" class="ml-1 hover:text-gray-300">&times;</button>
+              </span>
+            <% } %>
+            <% if (selectedFilters.category) { %>
+              <span class="inline-flex items-center gap-1 bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full">
+                Category: <%= selectedFilters.category %>
+              </span>
+            <% } %>
+            <% if (selectedFilters.brand) { %>
+              <span class="inline-flex items-center gap-1 bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full">
+                Brand: <%= selectedFilters.brand %>
+              </span>
+            <% } %>
+            <% if (selectedFilters.color) { %>
+              <span class="inline-flex items-center gap-1 bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full">
+                Color: <%= selectedFilters.color %>
+              </span>
+            <% } %>
+            <% if (selectedFilters.size) { %>
+              <span class="inline-flex items-center gap-1 bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full">
+                Size: <%= selectedFilters.size %>
+              </span>
+            <% } %>
+            <% if (selectedFilters.minPrice || selectedFilters.maxPrice) { %>
+              <span class="inline-flex items-center gap-1 bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full">
+                Price: ₹<%= selectedFilters.minPrice || '0' %> – ₹<%= selectedFilters.maxPrice || '∞' %>
+              </span>
+            <% } %>
+          </div>
+        <% } %>
+
+        <% if (products.length === 0) { %>
+          <div class="flex flex-col items-center justify-center py-24 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="text-lg font-semibold text-gray-700 mb-1">No products found</h3>
+            <p class="text-sm text-gray-500 mb-4">Try adjusting your search or filters.</p>
+            <button onclick="clearAll()" class="bg-gray-900 text-white px-5 py-2 rounded-lg text-sm hover:bg-gray-700 transition">
+              Clear All
+            </button>
+          </div>
+        <% } else { %>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <% products.forEach(variant => { %>
+              <a href="/products/<%= variant.productId %>?variant=<%= variant._id %>"
+                class="relative bg-white rounded-xl shadow hover:shadow-lg transition p-4 block group">
+
+                <% if (variant.quantity <= 0) { %>
+                  <span class="absolute top-3 right-3 bg-gray-700 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
+                    Sold Out
+                  </span>
+                <% } %>
+
+                <div class="relative overflow-hidden rounded-lg bg-gray-50 mb-4 mt-2">
+                  <img
+                    src="<%= variant.image %>"
+                    alt="<%= variant.name %>"
+                    class="h-52 w-full object-contain group-hover:scale-105 transition-transform duration-300 <%= variant.quantity <= 0 ? 'opacity-60' : '' %>"
+                  />
+                </div>
+
+                <h3 class="font-semibold text-gray-800 text-sm leading-snug mb-1 line-clamp-2"><%= variant.name %></h3>
+
+                <p class="text-xs text-gray-400 mb-1">
+                  <% if (variant.color) { %><span class="capitalize"><%= variant.color %></span><% } %>
+                  <% if (variant.color && variant.size) { %> &middot; <% } %>
+                  <% if (variant.size) { %><%= variant.size %><% } %>
+                </p>
+
+                <p class="text-xs text-gray-400 mb-2"><%= variant.brand %></p>
+
+                <% if (variant.quantity > 0) { %>
+                  <p class="text-xs text-green-600 font-medium mb-2">In Stock (<%= variant.quantity %>)</p>
+                <% } else { %>
+                  <p class="text-xs text-red-500 font-medium mb-2">Out of Stock</p>
+                <% } %>
+
+                <div class="flex items-baseline gap-2">
+                  <span class="text-base font-bold text-gray-900">₹<%= variant.effective_price %></span>
+                </div>
+
+              </a>
+            <% }) %>
+          </div>
+
+          <%- include('../partials/pagination.ejs', { currentPage, totalPages, query }) %>
+        <% } %>
+
+      </main>
+    </div>
+  </div>
+
+<script>
+  // ── Collect all current filter/sort/search values and navigate ──────────────
+  function applyFilters() {
+    const params = new URLSearchParams()
+
+    const brand    = document.querySelector("select[name='brand']")?.value
+    const color    = document.querySelector("select[name='color']")?.value
+    const size     = document.querySelector("select[name='size']")?.value
+    const minPrice = document.getElementById("minPrice")?.value
+    const maxPrice = document.getElementById("maxPrice")?.value
+    const category = document.querySelector("input[name='category']:checked")?.value
+    const sort     = document.querySelector("select[name='sort']")?.value
+    const q        = document.getElementById("searchInput")?.value.trim()
+
+    if (brand    && brand    !== "All") params.append("brand",    brand)
+    if (color    && color    !== "All") params.append("color",    color)
+    if (size     && size     !== "All") params.append("size",     size)
+    if (minPrice)                       params.append("minPrice", minPrice)
+    if (maxPrice)                       params.append("maxPrice", maxPrice)
+    if (category && category !== "All") params.append("category", category)
+    if (sort)                           params.append("sort",     sort)
+    if (q)                              params.append("q",        q)
+
+    window.location.href = "/products?" + params.toString()
+  }
+
+  // ── Clear only the search term, preserve other filters ──────────────────────
+  function clearSearch() {
+    const params = new URLSearchParams(window.location.search)
+    params.delete("q")
+    params.delete("page")
+    window.location.href = "/products?" + params.toString()
+  }
+
+  // ── Clear all sidebar filters (keep search and sort intact) ─────────────────
+  function clearFilters() {
+    const params = new URLSearchParams()
+    const sort = document.querySelector("select[name='sort']")?.value
+    const q    = document.getElementById("searchInput")?.value.trim()
+    if (sort) params.append("sort", sort)
+    if (q)    params.append("q", q)
+    window.location.href = "/products?" + params.toString()
+  }
+
+  // ── Clear absolutely everything ──────────────────────────────────────────────
+  function clearAll() {
+    window.location.href = "/products"
+  }
+</script>
+</body>

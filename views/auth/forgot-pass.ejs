@@ -1,0 +1,81 @@
+  <!-- Page Title and Breadcrumb -->
+<div class="bg-gray-100 py-7 px-4">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-xl font-bold mb-2">Forgot Pasword</h1>
+    <nav class="text-sm text-gray-600">
+      <a href="/" class="hover:underline font-medium">Nutrixo</a> / <span>Verify Email</span>
+    </nav>
+  </div>
+</div>
+
+<!-- Reset Password Form -->
+<main class="flex-grow flex items-center justify-center px-4 py-10 min-h-[calc(100vh-12rem)] mt-[-110px]">
+  <div class="max-w-md w-full">
+    <p class="text-gray-600 mb-6">
+      Please enter the email address associated with your account.<br>
+      We’ll promptly send you a link to reset your password.
+    </p>
+
+    <form class="space-y-6" onsubmit="return handleForgotPassword(event)">
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          required
+          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
+        />
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          class="w-full bg-black text-white font-medium py-2 rounded-md hover:bg-gray-800 transition duration-200"
+        >
+          VERIFY WITH OTP
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+
+function handleForgotPassword(e){
+  e.preventDefault()
+  const email = document.getElementById('email').value
+
+  fetch('/auth/forgot-password',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email})
+  })
+  .then(res =>res.json())
+  .then(response =>{
+    if(response.success){
+      window.location.href = response.redirect || '/auth/otp'
+    }else{
+      Swal.fire({
+        icon:'error',
+        title:'Error',
+        text:response.message || 'User not found. Please signup'
+      }).then(()=>{
+        if(response.redirect){
+          window.location.href = response.redirect
+        }
+      })
+    }
+  })
+  .catch(()=>{
+    Swal.fire({
+      icon:'error',
+      title:'Error',
+      text:'Network error, please try again'
+    })
+  })
+  return false
+}
+
+
+</script>
