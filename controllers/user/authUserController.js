@@ -1,6 +1,6 @@
 const asyncHandler = require('express-async-handler')
 const messages = require('../../constants/messages')
-const {loginUserService, signupOtpService, verifyOtpService, 
+const {loginUserService, signupOtpService, verifyOtpService,sendResetOtpService,
      resetPasswordService, resendOtpService } = require('../../services/user/authUserServices')
 
 

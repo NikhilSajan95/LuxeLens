@@ -44,7 +44,55 @@ const messages = Object.freeze({
     PROFILE:{
         PROFILE_UPDATED:'Profile updated successfully'
     },
-})
+    CART:{
+        CART_ADD_FAILED:'Please login to add to cart',
+        CART_ADD:'Item added to cart',
+        CART_NOT_FOUND:'Cart not found',
+        CART_EMPTY:'Cart is empty! please add items before checkout'
+    },
+    STOCK:{
+        OUT_OF_STOCK:'Not enough stock quantity',
+        STOCK_ALLOWED:'Max 5 quantity per product allowed'
+    },
+    FILE:{
+        NO_FILE:'No file uploaded'
+    },
+    PROFILE:{
+        PROFILE_IMG_UPDATE:'Profile image updated successfully',
+        PROFILE_IMG_DELETE:'Profile image removed successfully',
+    },
+    ADDRESS:{
+        ADDRESS_ADDED:'Address added successfully',
+        ADDRESS_NOT_FOUND:'Address not found',
+        ADDRESS_UPDATED:'Address updated successfully',
+        ADDRESS_DELETED:'Address deleted successfully',
+        DEFAULT_ADDRESS:'Default address updated successfully',
+    },
+    ORDER:{
+        ORDER_NOT_FOUND:'Order not found',
+        ORDER_CANNONT_CANCEL:'Order cannot be cancelled at this stage',
+        ORDER_CANCELATION_REQUESTED:'Order cancellation requested successfully',
+    },
+    CANCELLATION:{
+        CANCELLATION_APPROVED:'Cancellation approved successfully',
+        CANCELLATION_REJECTED:'Cancellation request rejected',
+        CANCELLATION_NOT_REQUESTED:'Cancellation is not requested',
+    },
+    ITEM:{
+        ITEM_UPDATED:'Item status updatedd successfully',
+        ITEM_CANCELLED:'Item cancelled successfully',
+    },
+    RETURN:{
+        RETURN_REJECT:'Return request rejected',
+        RETURN_APPROVED:'Return request approved successfully',
+        RETURN_ALLOWED_ONLY_DELIVERED:'Return is allowed only for deliverd products',
+        RETURN_ALREDY_SUBMITTED:'Return request already submitted',
+        RETURN_SUBMITTED:'Return request submitted successfully',
+        RETURN_REASON_REQUIRED:'Return reason required',
+        RETURN_NOT_AVAILABLE:'Return available only if all products are delivered',
+        RETURN_NOT_REQUESTED:'Return not requested',
+    },
+});
 
 
 module.exports = messages

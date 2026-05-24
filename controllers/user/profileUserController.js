@@ -1,12 +1,37 @@
-const User = require('../../models/userModel')
 const asyncHandler = require('express-async-handler')
-const messages = require('../../constants/messages')
 const httpStatus = require('../../constants/httpStatus')
-const Address = require('../../models/addressModel')
-const {generateOtp,sendVerificationEmail} = require('../../utils/generator')
-const {apiLog} = require('../../config/logger')
-const { query } = require('winston')
+const messages = require('../../constants/messages')
+const profileService = require('../../services/user/profileUserService')
 
+const loadProfile = asyncHandler(async (req, res) => {
+    if (!req.session.user) {
+        return res.redirect('/auth/login')
+    }
+
+    const { user, addresses } = await profileService.getProfileDataService(req.session.user._id)
+
+    if (!user) {
+        req.session.destroy()
+        return res.redirect('/auth/login')
+    }
+
+    res.render('user/profile', { 
+        layout: 'layouts/user_main', 
+        user, 
+        addresses
+    })
+})
+
+const uploadProfileImage = asyncHandler( async( req,res) => {
+    const userId = req.session.user._id
+
+    if(!req.file) {
+        return res.json({ success: false, message: messages.FILE.NO_FILE })
+    }
+
+    const result = await profileService.updateProfileImageService(userId, req.file.path)
+    res.json(result)
+})
 
 const loadAddress = asyncHandler( async( req,res) => {
     const userId = req.session.user._id
@@ -14,63 +39,133 @@ const loadAddress = asyncHandler( async( req,res) => {
         return res.redirect('/auth/login')
     }
 
-    const page = parseInt(req.query.page) || 1
+    let page = parseInt(req.query.page) || 1
     const limit = 2
-
     if(page < 1) page = 1
 
-    const totalAddresses = await Address.countDocuments({user_id:userId})
-    const totalPages = Math.ceil(totalAddresses / limit)
+    const result = await profileService.getAddressPaginatedService(userId, page, limit)
 
-    if(totalAddresses === 0) {
-        return res.render('user/address',{layout:'layouts/user_main',addresses:[],currentPage:1,totalPages:1,query:req.query})
-    }
-    
-    if(page > totalPages) {
-        return res.redirect(`/profile/address?page=${totalPages}`)
+    if (result.redirect) {
+        return res.redirect(result.redirectUrl)
     }
 
-    const skip = (page - 1) * limit
-
-    const addresses = await Address.find({user_id:userId}).skip(skip).limit(limit).lean()
-
-    res.render('user/address',{layout:'layouts/user_main',addresses,currentPage:page,totalPages,query:req.query})
+    res.render('user/address', {
+        layout: 'layouts/user_main',
+        addresses: result.addresses,
+        currentPage: page,
+        totalPages: result.totalPages,
+        query: req.query
+    })
 })
 
 const addAddress = asyncHandler( async( req,res) => {
     const userId = req.session.user._id
     if(!userId) {
-        return res.status(httpStatus.bad_request).json({success:false,message:messages.USER.USER_NOT_LOGIN})
+        return res.status(httpStatus.bad_request).json({ success: false, message: messages.USER.USER_NOT_LOGIN })
     }
 
-    const {fullname,mobile,address,district,state,country,pincode} = req.body
+    const { fullname, mobile, address, district, state, country, pincode } = req.body
 
     if(!fullname || !mobile || !address || !district || !state || !country || !pincode) {
-        return res.status(httpStatus.bad_request).json({success:false,message:messages.AUTH.ALL_FIELDS_REQUIRED})
+        return res.status(httpStatus.bad_request).json({ success: false, message: messages.AUTH.ALL_FIELDS_REQUIRED })
     }
 
-    const addressCount = await Address.countDocuments({user_id:userId})
-
-    const newAddress = new Address({
-        user_id:userId,
-        fullname,
-        mobile,
-        address,
-        district,
-        state,
-        country,
-        pincode,
-        is_Default:addressCount === 0
-    })
-
-    await newAddress.save()
-
-    return res.json({success:true,message:messages.ADDRESS.ADDRESS_ADDED})
+    const result = await profileService.addAddressService(userId, req.body)
+    return res.json(result)
 })
 
+const updateAddress = asyncHandler( async( req,res) => {
+    const userId = req.session.user._id
+    const addressId = req.params.id
 
+    if(!userId) {
+        return res.status(httpStatus.bad_request).json({ success: false, message: messages.USER.USER_NOT_LOGIN })
+    }
 
+    const { fullname, mobile, address, district, state, country, pincode } = req.body
 
+    if(!fullname || !mobile || !address || !district || !state || !country || !pincode) {
+        return res.status(httpStatus.bad_request).json({ success: false, message: messages.AUTH.ALL_FIELDS_REQUIRED })
+    }
 
+    const result = await profileService.updateAddressService(userId, addressId, req.body)
 
-module.exports ={loadAddress,addAddress}
+    if (result.error) {
+        return res.status(result.status).json({ success: false, message: result.message })
+    }
+
+    return res.json({ success: true, message: result.message })
+})
+
+const deleteAddress = asyncHandler( async( req,res) => {
+    const userId = req.session.user._id
+    const addressId = req.params.id
+
+    if(!userId) {
+        return res.status(httpStatus.bad_request).json({ success: false, message: messages.USER.USER_NOT_FOUND })
+    }
+
+    const result = await profileService.deleteAddressService(userId, addressId)
+
+    if (result.error) {
+        return res.status(result.status).json({ success: false, message: result.message })
+    }
+
+    return res.json({ success: true, message: result.message })
+})
+
+const setDefaultAddress = asyncHandler( async( req,res) => {
+    const userId = req.session.user._id
+    const addressId = req.params.id
+
+    if(!userId) {
+        return res.status(httpStatus.unauthorized).json({ success: false, message: messages.USER.USER_NOT_FOUND })
+    }
+
+    const result = await profileService.setDefaultAddressService(userId, addressId)
+
+    if (result.error) {
+        return res.status(result.status).json({ success: false, message: result.message })
+    }
+
+    return res.json({ success: true, message: result.message })
+})
+
+const updateProfile = asyncHandler( async( req,res) => {
+    const userId = req.session.user._id
+
+    const result = await profileService.updateProfileService(userId, req.body)
+
+    if (result.error) {
+        return res.status(result.status).json({ success: false, message: result.message })
+    }
+
+    // If an OTP is required for email change, set the session variables in the controller
+    if (result.otpRequired) {
+        req.session.userOtp = result.otpData.otp
+        req.session.otpExpiry = result.otpData.otpExpiry
+        req.session.newEmail = result.otpData.email
+        req.session.userId = result.otpData.userId
+        req.session.purpose = 'email-change'
+
+        return res.json({ 
+            success: true, 
+            otpRequired: true, 
+            message: result.message, 
+            redirect: result.redirect 
+        })
+    }
+
+    return res.json({ success: true, message: result.message })
+})
+
+module.exports = {
+    loadProfile,
+    uploadProfileImage,
+    loadAddress,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress,
+    updateProfile
+}

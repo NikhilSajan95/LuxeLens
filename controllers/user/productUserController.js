@@ -73,24 +73,25 @@ const loadHome = asyncHandler(async (req, res) => {
 })
 
 // ─── loadProfile ───────────────────────────────────────────────────────────────
-const loadProfile = asyncHandler(async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/auth/login')
-  }
+// const loadProfile = asyncHandler(async (req, res) => {
+//   if (!req.session.user) {
+//     return res.redirect('/auth/login')
+//   }
 
-  const user = await User.findById(req.session.user._id).lean()
+//   const user = await User.findById(req.session.user._id).lean()
 
-  if (!user) {
-    req.session.destroy()
-    return res.redirect('/auth/login')
-  }
+//   if (!user) {
+//     req.session.destroy()
+//     return res.redirect('/auth/login')
+//   }
 
-  res.render('user/profile', { 
-    layout: 'layouts/user_main', 
-    user, 
-    addresses: [] 
-  })
-})
+
+//   res.render('user/profile', { 
+//     layout: 'layouts/user_main', 
+//     user, 
+//     addresses: [] 
+//   })
+// })
 
 // ─── logoutUser ────────────────────────────────────────────────────────────────
 const logoutUser = asyncHandler(async (req, res) => {
@@ -320,7 +321,6 @@ const searchProducts = asyncHandler(async (req, res) => {
 
 module.exports = {
   loadHome,
-  loadProfile,
   logoutUser,
   loadProducts,
   loadSingleProduct,

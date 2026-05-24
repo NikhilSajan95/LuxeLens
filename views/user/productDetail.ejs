@@ -119,9 +119,16 @@
 
       <div class="mb-6">
         <button id="addToCartBtn" type="button"
-          class="w-full bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-80 bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           <%= selectedVariant.quantity <= 0 ? 'disabled' : '' %>>
           <%= selectedVariant.quantity > 0 ? 'Add to Cart' : 'Out of Stock' %>
+        </button>
+        <button id="wishlistBtn"
+          class="border border-gray-300 rounded p-2 hover:bg-gray-100 transition"
+          onclick="toggleWishlistDetail()">
+            <i id="wishlistIcon"
+              class="fa fa-heart text-[1.2rem] <%= userWishlist?.includes(selectedVariant._id.toString()) ? 'text-red-500' : 'text-gray-400' %>">
+            </i>
         </button>
       </div>
 

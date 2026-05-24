@@ -46,10 +46,10 @@ const signupOtpService = async ({ name, email, password, mobile, session }) => {
   if (!emailSent) {
     return { error: true, status: httpStatus.internal_server_error, message: messages.OTP.FAILED }
   }
-const hashedPassword = await securePassword(password);
+
   session.userOtp = otp
   session.otpExpiry = Date.now() + 2 * 60 * 1000
-  session.userData = { name, email, password: hashedPassword, mobile }
+  session.userData = { name, email, password, mobile }
   session.purpose = 'signup'
 
   apiLog.info(`Signup OTP sent: ${email} | OTP: ${otp}`)
@@ -71,16 +71,15 @@ const verifyOtpService = async ({ otp, session }) => {
 
   if (session.purpose === 'signup') {
     const user = session.userData
+    const passwordHash = await securePassword(user.password)
 
     await User.create({
       name: user.name,
       email: user.email,
       mobile: user.mobile,
-      password: user.password
+      password: passwordHash
     })
 
-    session.userData = null; 
-    session.userOtp = null;
     return { error: false, redirect: '/auth/login', message: messages.AUTH.SIGNUP_SUCCESS }
   }
 
@@ -111,7 +110,34 @@ const verifyOtpService = async ({ otp, session }) => {
   return { error: true, status: httpStatus.bad_request, message: messages.OTP.INVALID_PURPOSE }
 }
 
+const sendResetOtpService = async ({ email, session }) => {
+  const user = await User.findOne({ email })
+  if (!user) {
+    apiLog.warn(`Password reset failed - user not found: ${email}`)
+    return { error: true, status: httpStatus.not_found, message: messages.AUTH.USER_NOT_FOUND }
+  }
 
+  const otp = generateOtp()
+  const emailSent = await sendVerificationEmail(email, otp)
+
+  if (!emailSent) {
+    apiLog.error(`Password reset OTP email failed: ${email}`)
+    return { error: true, status: httpStatus.internal_server_error, message: messages.OTP.FAILED }
+  }
+
+  session.userOtp = otp
+  session.otpExpiry = Date.now() + 2 * 60 * 1000
+  session.email = email
+  session.purpose = 'forgot-password'
+
+  apiLog.info(`Password reset OTP sent: ${email} | OTP: ${otp}`)
+
+  return {
+    error: false,
+    message: messages.OTP.SENT,
+    redirect: '/auth/otp'
+  }
+}
 
 const resetPasswordService = async ({ newPass, confirmPass, session }) => {
   const email = session.verifiedEmail
@@ -152,7 +178,9 @@ const resendOtpService = async ({ session }) => {
     email = session.userData.email
   } else if (session.purpose === 'forgot-password' && session.email) {
     email = session.email
-  } 
+  } else if (session.purpose === 'email-change' && session.newEmail) {
+    email = session.newEmail
+  }
 
   if (!email) {
     return { error: true, status: httpStatus.bad_request, message: messages.OTP.EMAIL_NOT_FOUND }
@@ -179,4 +207,4 @@ const resendOtpService = async ({ session }) => {
 }
 
 
-module.exports = {loginUserService,signupOtpService,verifyOtpService,resetPasswordService,resendOtpService,securePassword}
+module.exports = {loginUserService,signupOtpService,verifyOtpService,sendResetOtpService,resetPasswordService,resendOtpService,securePassword}
