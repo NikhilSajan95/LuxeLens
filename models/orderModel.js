@@ -14,15 +14,16 @@ const OrderSchema = new mongoose.Schema(
           ref: 'product',
           required: true,
         },
+        variantId: { type: mongoose.Schema.Types.ObjectId, required: true },
         title:          String,
-        color:        String,   // color stored at order time (from Rahul)
+        color:        String,   
         size:           String,
         image:          String,
-        actualPrice:    Number,   // unit price before offer (from Rahul)
-        offerPrice:     Number,   // unit price after offer (from Rahul)
+        actualPrice:    Number,   
+        offerPrice:     Number,   
         price:          Number,   // final unit price paid
-        couponDiscount: Number,   // per-item coupon share (from Rahul)
-        taxBase:        Number,   // base used for tax calculation (from Rahul)
+        couponDiscount: Number,   // per-item coupon share
+        taxBase:        Number,   // base used for tax calculation
         tax:            Number,
         discount:       Number,
         offerApplied:   Number,
@@ -72,7 +73,7 @@ const OrderSchema = new mongoose.Schema(
           resolvedAt: Date,
           refundAmount: Number,
         },
-        // ── Added from Rahul's schema ──────────────────────────────────
+        
         cancellationRequest: {
           status: {
             type: String,
@@ -88,8 +89,8 @@ const OrderSchema = new mongoose.Schema(
       },
     ],
     orderAddress: {
-      name: String,           // kept your field name
-      street_address: String, // kept your field name
+      name: String,           
+      street_address: String, 
       district: String,
       state: String,
       pincode: String,
@@ -111,9 +112,9 @@ const OrderSchema = new mongoose.Schema(
       paidAt: Date,
     },
     subtotal: Number,
-    taxAmount: Number,   // your field (Rahul uses `tax` at order level)
+    taxAmount: Number,   
     shippingCost: { type: Number, default: 0 },
-    discount: Number,    // your field (Rahul uses `totalDiscount`)
+    discount: Number,    
     totalAmount: Number,
     couponDiscount: { type: Number, default: 0 },
     coupon: {
@@ -124,7 +125,7 @@ const OrderSchema = new mongoose.Schema(
     totalOfferApplied: { type: Number, default: 0 },
     orderNumber: { type: String, unique: true },
 
-    // ── Added from Rahul's schema ──────────────────────────────────────
+    
     offerDiscount:  { type: Number, default: 0 },  // offer savings across all items
     actualTotal:    { type: Number, default: 0 },  // pre-offer grand total
   },
@@ -135,7 +136,7 @@ const OrderSchema = new mongoose.Schema(
   }
 );
 
-// Auto-generate order number (from Rahul's schema)
+// Auto-generate order number 
 OrderSchema.pre('save', async function (next) {
   if (!this.orderNumber) {
     const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -145,7 +146,7 @@ OrderSchema.pre('save', async function (next) {
   next();
 });
 
-// Auto-update paymentStatus based on item statuses (from Rahul's schema)
+// Auto-update paymentStatus based on item statuses
 OrderSchema.pre('save', function (next) {
   if (this.items.length === 0) return next();
 

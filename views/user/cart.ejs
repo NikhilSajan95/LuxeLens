@@ -304,8 +304,7 @@
     });
 
     // ── Decrease quantity ──────────────────────────────────────────────────
-    // Minimum is 1 (controller blocks going below 1).
-    // `data.removed` will never be true from decreaseQty now, but kept for safety.
+
     document.querySelectorAll(".decreaseBtn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const itemId = btn.dataset.id;

@@ -17,8 +17,8 @@ const productSchema = new mongoose.Schema({
     size: { type: String, required: true },
     quantity: { type: Number, required: true, default: 0 },
     images: { type: [String] }, // Images specific to each variant
-    createdAt:{type:Date,default:Date.now},
-    updatedAt:{type:Date,default:Date.now}
+    // createdAt:{type:Date,default:Date.now},
+    // updatedAt:{type:Date,default:Date.now}
   }]
 }, {
   timestamps: true

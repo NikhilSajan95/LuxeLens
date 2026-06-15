@@ -43,11 +43,12 @@
           <!-- Dropdown / No-address message -->
           <% if (addresses && addresses.length > 0) { %>
             <div class="flex justify-between items-center mb-4">
+              <%# option value is now _id (string), not array index %>
               <select id="addressSelect" class="border px-3 py-2 rounded-md">
-                <% addresses.forEach((addr, index) => {
+                <% addresses.forEach((addr) => {
                      const isSelected = selected && addr._id.toString() === selected._id.toString();
                 %>
-                  <option value="<%= index %>" <%= isSelected ? 'selected' : '' %>>
+                  <option value="<%= addr._id %>" <%= isSelected ? 'selected' : '' %>>
                     <%= addr.fullname %>
                   </option>
                 <% }) %>
@@ -153,10 +154,7 @@
           </a>
         </div>
 
-        <!-- Price Breakdown -->
-        <%
-          // cart items list for per-item display
-        %>
+        <!-- Per-item price breakdown -->
         <div class="space-y-2 text-sm text-gray-600 mb-4 max-h-48 overflow-y-auto">
           <% cart.items.forEach(item => { %>
             <div class="flex justify-between">
@@ -172,7 +170,6 @@
         <div class="border-t pt-4 space-y-3 text-gray-700">
           <div class="flex justify-between">
             <span>Subtotal</span>
-            <%# controller sends subtotal as string already formatted %>
             <span>₹ <%= subtotal %></span>
           </div>
           <div class="flex justify-between">
@@ -181,7 +178,6 @@
           </div>
           <div class="flex justify-between">
             <span>Tax (2%)</span>
-            <%# controller sends taxAmount, not tax %>
             <span>₹ <%= taxAmount %></span>
           </div>
           <div class="border-t pt-3 flex justify-between font-semibold text-lg">
@@ -191,10 +187,10 @@
         </div>
 
         <!-- Place Order Form -->
-        <%# action matches controller route: POST /checkout/place-order %>
+        <%# name="addressId" now sends the MongoDB _id, not an array index %>
         <form id="placeOrderForm" action="/checkout/place-order" method="POST" class="mt-6 mb-2">
-          <input type="hidden" id="selectedAddressIndex" name="addressIndex"
-                 value="<%= selected ? addresses.indexOf(selected) : 0 %>" />
+          <input type="hidden" id="selectedAddressId" name="addressId"
+                 value="<%= selected ? selected._id : '' %>" />
           <input type="hidden" id="selectedPayment" name="paymentMethod" value="COD" />
           <button class="w-full bg-black text-white py-3 rounded-md hover:bg-gray-800">
             Place Order
@@ -231,9 +227,10 @@
   <script src="/js/addressModal.js"></script>
 
   <script>
-    const addresses        = <%- JSON.stringify(addresses) %>;
-    const addressSelect    = document.getElementById("addressSelect");
-    const selectedAddressIndex = document.getElementById("selectedAddressIndex");
+    const addresses       = <%- JSON.stringify(addresses) %>;
+    const addressSelect   = document.getElementById("addressSelect");
+    const selectedAddressId = document.getElementById("selectedAddressId"); // renamed
+    const editBtn         = document.querySelector(".edit-btn");
 
     const street   = document.getElementById("street");
     const fullname = document.getElementById("fullname");
@@ -242,13 +239,14 @@
     const pincode  = document.getElementById("pincode");
     const country  = document.getElementById("country");
     const mobile   = document.getElementById("mobile");
-    const editBtn  = document.querySelector(".edit-btn");
 
     if (addressSelect) {
-      selectedAddressIndex.value = addressSelect.value;
-
+      // On change: look up address by _id (option value is now _id string)
       addressSelect.addEventListener("change", (e) => {
-        const sel = addresses[e.target.value];
+        const chosenId = e.target.value;
+        const sel = addresses.find(a => a._id.toString() === chosenId);
+        if (!sel) return;
+
         street.value   = sel.address;
         fullname.value = sel.fullname;
         district.value = sel.district;
@@ -256,22 +254,24 @@
         pincode.value  = sel.pincode;
         country.value  = sel.country;
         mobile.value   = sel.mobile;
-        selectedAddressIndex.value = e.target.value;
+
+        // Send _id to controller, not an index
+        selectedAddressId.value = sel._id;
         if (editBtn) editBtn.dataset.id = sel._id;
       });
     }
 
     toastr.options = {
-      closeButton:    true,
-      progressBar:    true,
-      positionClass:  "toast-bottom-right",
-      timeOut:        "3000"
+      closeButton:   true,
+      progressBar:   true,
+      positionClass: "toast-bottom-right",
+      timeOut:       "3000"
     };
 
-    <% if (error === 'invalidPayment') { %> toastr.error('Invalid payment method selected.'); <% } %>
-    <% if (error === 'noAddress')      { %> toastr.error('Please add an address before ordering.'); <% } %>
-    <% if (error === 'stockAdjusted') { %> toastr.warning('Some products had limited stock. Quantities were adjusted.'); <% } %>
-    <% if (error === 'allOutOfStock') { %> toastr.error('All items are out of stock.'); <% } %>
+    <% if (error === 'invalidPayment') { %> toastr.error('Invalid payment method selected.');         <% } %>
+    <% if (error === 'noAddress')      { %> toastr.error('Please add an address before ordering.');   <% } %>
+    <% if (error === 'stockAdjusted')  { %> toastr.warning('Some products had limited stock. Quantities were adjusted.'); <% } %>
+    <% if (error === 'allOutOfStock')  { %> toastr.error('All items are out of stock.');              <% } %>
   </script>
 
 </body>

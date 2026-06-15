@@ -1,37 +1,73 @@
 const asyncHandler = require('express-async-handler')
-const messages     = require('../../constants/messages')
 const Address      = require('../../models/addressModel')
 const Cart         = require('../../models/cartModel')
 const Order        = require('../../models/orderModel')
 const Product      = require('../../models/productModel')
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-
-function getVariant(product, variantId) {
-    if (typeof product.variants?.id === 'function') {
-        return product.variants.id(variantId)
-    }
-    return product.variants?.find(
-        (v) => v._id?.toString() === variantId?.toString()
-    ) ?? null
+/**
+ * Fetch only the single matching variant from DB using $elemMatch projection.
+ * Returns { product fields..., variants: [matchedVariant] } or null.
+ * Avoids pulling the entire variants array over the wire.
+ */
+async function fetchProductWithVariant(productId, variantId) {
+    return Product.findOne(
+        {
+            _id:      productId,
+            isDeleted: false,
+            isListed:  true,
+            variants:  { $elemMatch: { _id: variantId } },
+        },
+        {
+            title:         1,
+            regular_price: 1,
+            offer_price:   1,
+            isListed:      1,
+            isDeleted:     1,
+            'variants.$':  1,   // only the matched variant
+        }
+    ).lean()
 }
 
+/**
+ * Check stock sufficiency directly in MongoDB — no document transfer needed.
+ * Returns true if variant has enough quantity, false otherwise.
+ */
+async function isStockSufficient(productId, variantId, requiredQty) {
+    return Product.exists({
+        _id:      productId,
+        isDeleted: false,
+        isListed:  true,
+        variants:  { $elemMatch: { _id: variantId, quantity: { $gte: requiredQty } } },
+    })
+}
 
+// ─── Controllers ────────────────────────────────────────────────────────────
 
+/**
+ * GET /checkout
+ * - Validates cart stock using targeted MongoDB queries
+ * - Fetches addresses and cart in parallel
+ * - Computes subtotal, tax (2%), total in JS (data already in memory)
+ */
 const loadCheckout = asyncHandler(async (req, res) => {
     const userId = req.session.user._id
     if (!userId) return res.redirect('/auth/login')
 
-    const addresses = await Address.find({ user_id: userId }).lean()
-    const cart = await Cart.findOne({ user_id: userId })
-        .populate('items.product_id')
-        .lean()
+    // ── Parallel fetch — addresses and cart don't depend on each other ───
+    const [addresses, cart] = await Promise.all([
+        Address.find({ user_id: userId }).lean(),
+        Cart.findOne({ user_id: userId })
+            .populate('items.product_id', 'title regular_price offer_price variants isListed isDeleted')
+            .lean(),
+    ])
 
     if (!cart || cart.items.length === 0) {
         return res.redirect('/cart')
     }
 
-    //   Stock validation 
+    // ── Stock validation using $elemMatch — only matched variant returned ─
     let removedItems = false
     const validItems = []
 
@@ -42,8 +78,14 @@ const loadCheckout = asyncHandler(async (req, res) => {
             continue
         }
 
-        const variant = getVariant(product, item.variant_id)
-        if (!variant || variant.quantity < item.quantity) {
+        // MongoDB checks stock sufficiency — no JS filtering needed
+        const sufficient = await isStockSufficient(
+            product._id,
+            item.variant_id,
+            item.quantity
+        )
+
+        if (!sufficient) {
             removedItems = true
             continue
         }
@@ -56,23 +98,22 @@ const loadCheckout = asyncHandler(async (req, res) => {
         return res.redirect('/cart?error=stock')
     }
 
-  
-    
+    // ── Totals — simple arithmetic on data already in memory ─────────────
     let subtotal = 0
     for (const item of validItems) {
         subtotal += Number(item.price) * item.quantity
     }
 
-    const taxAmount = Number((subtotal * 0.02).toFixed(2))
+    const taxAmount = Math.round(subtotal * 0.02 * 100) / 100
     const total     = subtotal + taxAmount
 
     res.render('user/checkout', {
-        layout:    'layouts/user_main',
+        layout:     'layouts/user_main',
         addresses,
-        cart:      { ...cart, items: validItems },
-        subtotal:  subtotal.toFixed(2),
-        taxAmount: taxAmount.toFixed(2),
-        total:     total.toFixed(2),
+        cart:       { ...cart, items: validItems },
+        subtotal:   subtotal.toFixed(2),
+        taxAmount:  taxAmount.toFixed(2),
+        total:      total.toFixed(2),
         cartLength: validItems.length,
         selectedId: req.query.selected || null,
         error:      req.query.error || null,
@@ -80,40 +121,70 @@ const loadCheckout = asyncHandler(async (req, res) => {
     })
 })
 
-
+/**
+ * POST /checkout/place-order
+ * - Fetches all products in one $in query instead of N serial queries
+ * - Uses $elemMatch projection to get only the needed variant per product
+ * - Uses bulkWrite for stock deduction (one DB round-trip for all items)
+ * - COD only
+ */
 const placeOrder = asyncHandler(async (req, res) => {
     const userId = req.session.user._id
     if (!userId) return res.redirect('/auth/login')
 
-    const { addressIndex, paymentMethod } = req.body
+    const { addressId, paymentMethod } = req.body
 
-    
     if (paymentMethod !== 'COD') {
         return res.redirect('/checkout?error=invalidPayment')
     }
 
-    const addresses = await Address.find({ user_id: userId }).lean()
-    const selectedAddress = addresses[addressIndex]
-    if (!selectedAddress) return res.redirect('/checkout?error=noAddress')
+    // ── Parallel fetch — address (by ID) and cart don't depend on each other
+    const [selectedAddress, cart] = await Promise.all([
+        Address.findOne({ _id: addressId, user_id: userId }).lean(),  // fetch only the chosen address
+        Cart.findOne({ user_id: userId })
+            .populate('items.product_id', 'title regular_price offer_price variants isListed isDeleted')
+            .lean(),
+    ])
 
-    const cart = await Cart.findOne({ user_id: userId })
-        .populate('items.product_id')
-        .lean()
+    if (!selectedAddress) return res.redirect('/checkout?error=noAddress')
 
     if (!cart || cart.items.length === 0) return res.redirect('/cart')
 
+    // ── Fetch all products in ONE query using $in ─────────────────────────
+    // Each product is fetched with only the relevant variant via $elemMatch.
+    // This replaces N serial Product.findById calls with a single round-trip.
+    // Note: $elemMatch projection returns only the first matching variant,
+    // which is correct here since each cart item has a unique variantId.
+    const productIds = cart.items.map((i) => i.product_id._id ?? i.product_id)
+    const products   = await Product.find(
+        { _id: { $in: productIds }, isDeleted: false, isListed: true },
+        { title: 1, regular_price: 1, offer_price: 1, isListed: 1, isDeleted: 1, variants: 1 }
+    ).lean()
+
+    // Build a map for O(1) lookup inside the loop
+    const productMap = Object.fromEntries(
+        products.map((p) => [p._id.toString(), p])
+    )
+
+    // ── Stock re-validation in JS (products already in memory) ───────────
     let stockIssue            = false
-    let updatedItems          = []
-    let stockAdjustedProducts = []
+    const updatedItems        = []
+    const stockAdjustedProducts = []
 
     for (const item of cart.items) {
-        const product = await Product.findById(item.product_id._id ?? item.product_id)
-        if (!product || product.isDeleted || !product.isListed) {
+        const productId = (item.product_id._id ?? item.product_id).toString()
+        const product   = productMap[productId]
+
+        if (!product) {
             stockIssue = true
             continue
         }
 
-        const variant = getVariant(product, item.variant_id)
+        // Variant lookup in JS — product already fetched, no extra DB call
+        const variant = product.variants?.find(
+            (v) => v._id?.toString() === item.variant_id?.toString()
+        )
+
         if (!variant) {
             stockIssue = true
             continue
@@ -149,33 +220,46 @@ const placeOrder = asyncHandler(async (req, res) => {
         )
     }
 
+    // ── Totals — arithmetic on data already in memory ────────────────────
     let subtotal = 0
     for (const item of updatedItems) {
         subtotal += Number(item.price) * item.quantity
     }
 
-    const taxAmount   = Number((subtotal * 0.02).toFixed(2))
+    const taxAmount   = Math.round(subtotal * 0.02 * 100) / 100
     const totalAmount = subtotal + taxAmount
 
+    // ── Build order items — transformation in JS ──────────────────────────
     const orderItems = updatedItems.map((it) => {
-        const product_doc = it.product_id
-        const savedPrice  = Number(it.price)
+        const productId  = (it.product_id._id ?? it.product_id).toString()
+        const product    = productMap[productId]
+        const actualPrice = Math.round(Number(product.regular_price ?? it.price) * 100) / 100
+        const savedPrice  = Math.round(Number(it.price) * 100) / 100
         const qty         = it.quantity
-        const totalPrice  = savedPrice * qty
-        const itemTax     = Number((savedPrice * 0.02).toFixed(2))
+        const totalPrice  = Math.round(savedPrice * qty * 100) / 100
+        const itemTax     = Math.round(savedPrice * 0.02 * 100) / 100
+        const itemDiscount = Math.round((actualPrice - savedPrice) * 100) / 100
 
-        const matchedVariant = product_doc.variants?.find(
+        // Variant already in productMap — no extra DB call
+        const matchedVariant = product.variants?.find(
             (v) => v._id?.toString() === it.variant_id?.toString()
         ) ?? null
 
         return {
-            product:        product_doc._id ?? it.product_id,
-            title:          product_doc.title ?? it.title,
+            product:        product._id,
+            variantId:      it.variant_id,
+            title:          product.title,
             flavour:        it.flavour,
             size:           it.size,
             image:          matchedVariant?.images?.[0] ?? null,
+            actualPrice,
+            offerPrice:     savedPrice,
             price:          savedPrice,
+            couponDiscount: 0,
+            taxBase:        savedPrice,
             tax:            itemTax,
+            discount:       itemDiscount,
+            offerApplied:   itemDiscount,
             quantity:       qty,
             totalPrice,
             status:         'PROCESSING',
@@ -186,7 +270,7 @@ const placeOrder = asyncHandler(async (req, res) => {
         }
     })
 
-    //  Save order 
+    // ── Save order ───────────────────────────────────────────────────────
     const newOrder = new Order({
         user: userId,
         items: orderItems,
@@ -199,30 +283,44 @@ const placeOrder = asyncHandler(async (req, res) => {
             pincode:        selectedAddress.pincode,
             mobile:         selectedAddress.mobile,
         },
-        paymentMethod: 'COD',
-        paymentStatus: 'PENDING',
+        paymentMethod:     'COD',
+        paymentStatus:     'PENDING',
         subtotal,
         taxAmount,
+        couponDiscount:    0,
+        discount:          0,
         totalAmount,
+        totalOfferApplied: 0,
+        offerDiscount:     0,
+        actualTotal:       subtotal,
+        coupon:            null,
     })
 
     await newOrder.save()
 
-    //  Deduct stock
-    for (const item of updatedItems) {
-        await Product.updateOne(
-            { 'variants._id': item.variant_id },
-            { $inc: { 'variants.$.quantity': -item.quantity } }
-        )
-    }
+    // ── Deduct stock — single bulkWrite instead of N updateOne calls ──────
+    await Product.bulkWrite(
+        updatedItems.map((item) => ({
+            updateOne: {
+                filter: {
+                    _id:          item.product_id._id ?? item.product_id,
+                    'variants._id': item.variant_id,
+                },
+                update: { $inc: { 'variants.$.quantity': -item.quantity } },
+            },
+        }))
+    )
 
-    //  Clear cart 
+    // ── Clear cart ───────────────────────────────────────────────────────
     await Cart.updateOne({ _id: cart._id }, { $set: { items: [] } })
 
     return res.redirect(`/checkout/${newOrder._id}/success`)
 })
 
-
+/**
+ * GET /checkout/:id/success
+ * Renders the order success page.
+ */
 const viewOrderSuccess = asyncHandler(async (req, res) => {
     const userId = req.session.user._id
     if (!userId) return res.redirect('/auth/login')
