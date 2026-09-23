@@ -1,0 +1,232 @@
+<body class="bg-gray-50 min-h-screen font-sans">
+  <div class="max-w-7xl mx-auto py-10 px-6">
+    
+    <!-- 🧭 Breadcrumb -->
+    <nav class="flex items-center text-sm text-gray-500 mb-6">
+      <a href="/admin/dashboard" class="hover:text-gray-800 transition">Admin</a>
+      <span class="mx-2">/</span>
+      <span class="text-gray-800 font-semibold">Orders</span>
+    </nav>
+
+    <!-- 🧾 Page Header -->
+    <h1 class="text-2xl font-bold text-gray-800 mb-8">Orders</h1>
+
+    <!-- 🔍 Filter Form -->
+    <form
+      method="GET"
+      action="/admin/orders"
+      class="flex flex-wrap items-end gap-4 mb-6"
+    >
+      <!-- Search -->
+      <div class="flex-grow sm:w-1/3">
+        <label class="block text-sm text-gray-600 mb-1">Search Orders</label>
+        <input
+          type="text"
+          name="search"
+          value="<%= search || '' %>"
+          placeholder="Search by Order ID or User Email"
+          class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+        />
+      </div>
+
+      <!-- Payment Status -->
+      <div class="w-full sm:w-1/4">
+        <label class="block text-sm text-gray-600 mb-1">Payment Status</label>
+        <select
+          name="paymentStatus"
+          class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+        >
+          <option value="">All Payment Statuses</option>
+          <option value="PENDING" <%= paymentStatus==='PENDING' ? 'selected' : '' %>>Pending</option>
+          <option value="COMPLETED" <%= paymentStatus==='COMPLETED' ? 'selected' : '' %>>Completed</option>
+          <option value="FAILED" <%= paymentStatus==='FAILED' ? 'selected' : '' %>>Failed</option>
+          <option value="REFUNDED" <%= paymentStatus==='REFUNDED' ? 'selected' : '' %>>Refunded</option>
+        </select>
+      </div>
+
+      <!-- Sort -->
+      <div class="w-full sm:w-1/4">
+        <label class="block text-sm text-gray-600 mb-1">Sort By</label>
+        <select
+          name="sort"
+          class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+        >
+          <option value="newest" <%= sort==='newest' ? 'selected' : '' %>>Order Date (Newest)</option>
+          <option value="oldest" <%= sort==='oldest' ? 'selected' : '' %>>Order Date (Oldest)</option>
+        </select>
+      </div>
+
+      <!-- Apply -->
+      <div class="flex items-end sm:pt-0">
+        <button
+          type="submit"
+          class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition mt-1 sm:mt-0"
+        >
+          Apply
+        </button>
+      </div>
+    </form>
+
+    <!-- 🧹 Clear Filters -->
+    <form method="GET" action="/admin/orders" class="mb-8 mt-4">
+      <button
+        type="submit"
+        class="bg-gray-200 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-300 transition mb-6"
+      >
+        Clear Filters
+      </button>
+    </form>
+
+    <!-- 📋 Orders Table -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow-md mt-12">
+      <table class="min-w-full text-sm text-left text-gray-700">
+        <thead class="bg-gray-100 text-gray-600 uppercase text-xs font-semibold">
+          <tr>
+            <th class="px-6 py-3">Order ID</th>
+            <th class="px-6 py-3">Order Date</th>
+            <th class="px-6 py-3">User Email</th>
+            <th class="px-6 py-3">Total Amount</th>
+            <th class="px-6 py-3">Payment Status</th>
+            <th class="px-6 py-3">Concerns</th>
+            <th class="px-6 py-3 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <% if (orders.length === 0) { %>
+            <tr>
+              <td colspan="7" class="text-center py-6 text-gray-500">No orders found.</td>
+            </tr>
+          <% } else { %>
+            <% orders.forEach(order => { 
+              const hasCancelReq = order.items.some(item => item.status === "CANCELLATION REQUESTED");
+              const hasReturnReq = order.items.some(item => item.returnRequest?.status === "REQUESTED");
+            %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium"><%= order.orderNumber %></td>
+                <td class="px-6 py-4"><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                <td class="px-6 py-4"><%= order.user?.email || "Unknown" %></td>
+                <td class="px-6 py-4">₹<%= order.totalAmount.toLocaleString() %></td>
+
+                <td class="px-6 py-4">
+                  <% if (order.paymentStatus === "COMPLETED") { %>
+                    <span class="text-green-600 font-semibold">Completed</span>
+                  <% } else if (order.paymentStatus === "PENDING") { %>
+                    <span class="text-yellow-600 font-semibold">Pending</span>
+                  <% } else if (order.paymentStatus === "FAILED") { %>
+                    <span class="text-red-600 font-semibold">Failed</span>
+                  <% } else { %>
+                    <span class="text-blue-600 font-semibold">Refunded</span>
+                  <% } %>
+                </td>
+
+                <td class="px-6 py-4">
+                  <% if (hasCancelReq) { %>
+                    <span class="text-red-600">Cancellation Requested</span>
+                  <% } else if (hasReturnReq) { %>
+                    <span class="text-blue-600">Return Requested</span>
+                  <% } else { %>
+                    <span class="text-gray-600">None</span>
+                  <% } %>
+                </td>
+
+                <td class="px-6 py-4 text-center">
+                  <a href="/admin/orders/<%= order._id %>"
+                    class="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition">
+                    View
+                  </a>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/pagination.ejs',{currentPage,totalPages,query}) %>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const paymentFilter = document.getElementById('paymentFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    const applyBtn = document.getElementById('applyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const ordersBody = document.getElementById('ordersBody');
+
+    // Load filtered data dynamically
+    async function loadOrders() {
+      const search = searchInput.value.trim();
+      const paymentStatus = paymentFilter.value;
+      const sort = sortFilter.value;
+
+      const query = new URLSearchParams({ search, paymentStatus, sort }).toString();
+      const res = await fetch(`/admin/orders/data?${query}`);
+      const data = await res.json();
+
+      // Update table
+      renderTable(data.orders);
+    }
+
+    // Render updated table rows
+    function renderTable(orders) {
+      if (!orders.length) {
+        ordersBody.innerHTML = `
+          <tr><td colspan="7" class="text-center py-6 text-gray-500">No orders found.</td></tr>
+        `;
+        return;
+      }
+
+      ordersBody.innerHTML = orders.map(order => {
+        const hasCancelReq = order.items.some(i => i.status === 'CANCELLATION REQUESTED');
+        const hasReturnReq = order.items.some(i => i.returnRequest?.status === 'REQUESTED');
+
+        let paymentColor = 'text-gray-600';
+        if (order.paymentStatus === 'COMPLETED') paymentColor = 'text-green-600 font-semibold';
+        else if (order.paymentStatus === 'PENDING') paymentColor = 'text-yellow-600 font-semibold';
+        else if (order.paymentStatus === 'FAILED') paymentColor = 'text-red-600 font-semibold';
+        else if (order.paymentStatus === 'REFUNDED') paymentColor = 'text-blue-600 font-semibold';
+
+        const concernText = hasCancelReq
+          ? '<span class="text-red-600">Cancellation Requested</span>'
+          : hasReturnReq
+          ? '<span class="text-blue-600">Return Requested</span>'
+          : '<span class="text-gray-600">None</span>';
+
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-medium">${order.orderNumber}</td>
+            <td class="px-6 py-4">${new Date(order.createdAt).toLocaleDateString()}</td>
+            <td class="px-6 py-4">${order.user?.email || "Unknown"}</td>
+            <td class="px-6 py-4">₹${order.totalAmount.toLocaleString()}</td>
+            <td class="px-6 py-4 ${paymentColor}">${order.paymentStatus}</td>
+            <td class="px-6 py-4">${concernText}</td>
+            <td class="px-6 py-4">
+              <a href="/admin/orders/${order._id}" 
+                 class="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700">
+                 View
+              </a>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Apply filters
+    applyBtn.addEventListener('click', loadOrders);
+
+    // Clear filters
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      paymentFilter.value = '';
+      sortFilter.value = 'newest';
+      loadOrders();
+    });
+
+    // Optional: Auto-load when typing (debounced)
+    let typingTimer;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(loadOrders, 500);
+    });
+  </script>
+  
+</body>

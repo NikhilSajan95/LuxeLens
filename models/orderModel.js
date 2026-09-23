@@ -4,14 +4,15 @@ const OrderSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'user',
+      ref: 'User',
       required: true,
     },
+    showInOrders: {type:Boolean,default:false},
     items: [
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'product',
+          ref: 'Product',
           required: true,
         },
         variantId: { type: mongoose.Schema.Types.ObjectId, required: true },
@@ -37,6 +38,7 @@ const OrderSchema = new mongoose.Schema(
             'SHIPPED',
             'DELIVERED',
             'RETURN REQUESTED',
+            'CANCELLATION REQUESTED',
             'CANCELLED',
             'RETURNED',
           ],
@@ -141,7 +143,7 @@ OrderSchema.pre('save', async function (next) {
   if (!this.orderNumber) {
     const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
     const timePart   = Date.now().toString().slice(-4);
-    this.orderNumber = `NUT-${randomPart}${timePart}`;
+    this.orderNumber = `LUX-${randomPart}${timePart}`;
   }
   next();
 });

@@ -1,0 +1,310 @@
+<body class="bg-gray-50 min-h-screen font-sans">
+  <div class="max-w-5xl mx-auto py-10 px-6">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center text-sm text-gray-500 mb-6">
+      <a href="/admin/dashboard" class="hover:text-gray-800">Admin</a>
+      <span class="mx-2">/</span>
+      <a href="/admin/orders" class="hover:text-gray-800">Orders</a>
+      <span class="mx-2">/</span>
+      <span class="text-gray-800 font-semibold"><%= order.orderNumber %></span>
+    </nav>
+
+    <h1 class="text-2xl font-bold text-gray-800 mb-2">Order Detail</h1>
+    <p class="text-sm text-gray-500 mb-8">
+      Placed on <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' }) %>
+    </p>
+
+    <!-- Order Summary Card -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+      <div>
+        <h2 class="text-xs font-semibold text-gray-500 uppercase mb-3">Order Info</h2>
+        <p class="text-sm text-gray-700"><span class="font-medium">Order ID:</span> <%= order.orderNumber %></p>
+        <p class="text-sm text-gray-700 mt-1"><span class="font-medium">Payment Method:</span> <%= order.paymentMethod %></p>
+        <p class="text-sm text-gray-700 mt-1">
+          <span class="font-medium">Payment Status:</span>
+          <% if (order.paymentStatus === 'COMPLETED') { %>
+            <span class="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs">Completed</span>
+          <% } else if (order.paymentStatus === 'PENDING') { %>
+            <span class="ml-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs">Pending</span>
+          <% } else if (order.paymentStatus === 'FAILED') { %>
+            <span class="ml-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs">Failed</span>
+          <% } else { %>
+            <span class="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs"><%= order.paymentStatus %></span>
+          <% } %>
+        </p>
+        <% if (order.coupon) { %>
+          <p class="text-sm text-gray-700 mt-1">
+            <span class="font-medium">Coupon:</span> <%= order.coupon.code %> — <%= order.coupon.name %>
+          </p>
+        <% } %>
+      </div>
+
+      <div>
+        <h2 class="text-xs font-semibold text-gray-500 uppercase mb-3">Customer</h2>
+        <p class="text-sm text-gray-700 font-medium"><%= order.user?.name || '—' %></p>
+        <p class="text-sm text-gray-500"><%= order.user?.email || '—' %></p>
+      </div>
+
+      <div>
+        <h2 class="text-xs font-semibold text-gray-500 uppercase mb-3">Shipping Address</h2>
+        <p class="text-sm text-gray-700"><%= order.orderAddress.name %></p>
+        <p class="text-sm text-gray-700"><%= order.orderAddress.street_address %></p>
+        <p class="text-sm text-gray-700">
+          <%= order.orderAddress.district %>, <%= order.orderAddress.state %> — <%= order.orderAddress.pincode %>
+        </p>
+        <p class="text-sm text-gray-700"><%= order.orderAddress.country %></p>
+        <p class="text-sm text-gray-700 mt-1">📞 <%= order.orderAddress.mobile %></p>
+      </div>
+
+      <div>
+        <h2 class="text-xs font-semibold text-gray-500 uppercase mb-3">Price Summary</h2>
+        <div class="space-y-1 text-sm text-gray-700">
+          <div class="flex justify-between"><span>Subtotal</span><span>₹<%= Number(order.subtotal || 0).toFixed(2) %></span></div>
+          <% if (order.offerDiscount > 0) { %>
+          <div class="flex justify-between text-green-600"><span>Offer Discount</span><span>− ₹<%= Number(order.offerDiscount).toFixed(2) %></span></div>
+          <% } %>
+          <% if (order.couponDiscount > 0) { %>
+          <div class="flex justify-between text-green-600"><span>Coupon Discount</span><span>− ₹<%= Number(order.couponDiscount).toFixed(2) %></span></div>
+          <% } %>
+          <% if (order.taxAmount > 0) { %>
+          <div class="flex justify-between"><span>Tax</span><span>₹<%= Number(order.taxAmount).toFixed(2) %></span></div>
+          <% } %>
+          <div class="flex justify-between font-bold border-t pt-1 mt-1">
+            <span>Total</span><span>₹<%= Number(order.totalAmount).toFixed(2) %></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Items -->
+    <h2 class="text-lg font-bold text-gray-800 mb-4">Order Items</h2>
+    <div class="space-y-6">
+
+      <% order.items.forEach(item => { %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+
+        <!-- Item header -->
+        <div class="flex gap-4 items-start">
+          <img src="<%= item.image || '/images/no-image.png' %>"
+               alt="<%= item.title %>"
+               class="w-20 h-20 object-cover rounded border" />
+
+          <div class="flex-1">
+            <p class="font-semibold text-gray-800"><%= item.title %></p>
+            <p class="text-sm text-gray-500 mt-1">
+              Color: <span class="font-medium text-gray-700"><%= item.color || '—' %></span>
+              &nbsp;|&nbsp;
+              Size: <span class="font-medium text-gray-700"><%= item.size || '—' %></span>
+              &nbsp;|&nbsp;
+              Qty: <span class="font-medium text-gray-700"><%= item.quantity %></span>
+            </p>
+            <p class="text-sm text-gray-500 mt-1">
+              Unit Price: ₹<%= Number(item.offerPrice || item.price).toFixed(2) %>
+              &nbsp;|&nbsp;
+              Total: ₹<%= Number((item.offerPrice || item.price) * item.quantity).toFixed(2) %>
+            </p>
+          </div>
+
+          <!-- Current Status Badge -->
+          <div>
+            <%
+              const statusColors = {
+                'PROCESSING':             'bg-yellow-100 text-yellow-800',
+                'PACKED':                 'bg-blue-100 text-blue-800',
+                'SHIPPED':                'bg-indigo-100 text-indigo-800',
+                'DELIVERED':              'bg-green-100 text-green-800',
+                'CANCELLATION REQUESTED': 'bg-orange-100 text-orange-800',
+                'CANCELLED':              'bg-red-100 text-red-800',
+                'RETURN REQUESTED':       'bg-purple-100 text-purple-800',
+                'RETURNED':               'bg-gray-200 text-gray-700',
+              };
+              const badgeClass = statusColors[item.status] || 'bg-gray-100 text-gray-700';
+            %>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold <%= badgeClass %>">
+              <%= item.status %>
+            </span>
+          </div>
+        </div>
+
+        <!-- Status Update -->
+        <% const isTerminal = ['CANCELLED','RETURNED'].includes(item.status); %>
+        <% if (!isTerminal) { %>
+        <div class="mt-5 flex flex-wrap gap-3 items-center border-t pt-4">
+          <label class="text-sm text-gray-600 font-medium">Update Status:</label>
+          <select id="status-<%= item._id %>"
+                  class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+            <%
+              // Only allow statuses that come AFTER the current one in the flow
+              // (and exclude request-statuses which are set by users, not admin)
+              const adminStatuses = ['PROCESSING','PACKED','SHIPPED','DELIVERED','CANCELLED'];
+              const currentIdx    = STATUS_FLOW.indexOf(item.status);
+            %>
+            <% adminStatuses.forEach(s => {
+                 const idx = STATUS_FLOW.indexOf(s);
+                 if (idx > currentIdx || s === item.status) { %>
+              <option value="<%= s %>" <%= s === item.status ? 'selected' : '' %>><%= s %></option>
+            <% }}) %>
+          </select>
+          <button
+            onclick="updateStatus('<%= order._id %>', '<%= item._id %>')"
+            class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition">
+            Update
+          </button>
+        </div>
+        <% } %>
+
+        <!-- Cancellation Request Actions -->
+        <% if (item.status === 'CANCELLATION REQUESTED' && item.cancellationRequest?.status === 'REQUESTED') { %>
+        <div class="mt-4 border-t pt-4">
+          <p class="text-sm text-gray-700 mb-1">
+            <span class="font-semibold">Cancellation Reason:</span>
+            <%= item.cancellationRequest.reason || 'No reason given' %>
+          </p>
+          <div class="flex gap-3 mt-3">
+            <button onclick="handleCancellation('<%= order._id %>','<%= item._id %>','approve')"
+                    class="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-green-700 transition">
+              Approve Cancellation
+            </button>
+            <button onclick="handleCancellation('<%= order._id %>','<%= item._id %>','reject')"
+                    class="bg-red-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-red-700 transition">
+              Reject Cancellation
+            </button>
+          </div>
+        </div>
+        <% } %>
+
+        <!-- Return Request Actions -->
+        <% if (item.status === 'RETURN REQUESTED' && item.returnRequest?.status === 'REQUESTED') { %>
+        <div class="mt-4 border-t pt-4">
+          <p class="text-sm text-gray-700 mb-1">
+            <span class="font-semibold">Return Reason:</span>
+            <%= item.returnRequest.reason || 'No reason given' %>
+          </p>
+          <div class="flex gap-3 mt-3">
+            <button onclick="handleReturn('<%= order._id %>','<%= item._id %>','approve')"
+                    class="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-green-700 transition">
+              Approve Return
+            </button>
+            <button onclick="handleReturn('<%= order._id %>','<%= item._id %>','reject')"
+                    class="bg-red-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-red-700 transition">
+              Reject Return
+            </button>
+          </div>
+        </div>
+        <% } %>
+
+        <!-- Status History -->
+        <% if (item.statusHistory && item.statusHistory.length > 0) { %>
+        <div class="mt-5 border-t pt-4">
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Status History</p>
+          <ul class="space-y-1">
+            <% item.statusHistory.slice().reverse().forEach(h => { %>
+            <li class="text-xs text-gray-600 flex gap-2">
+              <span class="text-gray-400 shrink-0">
+                <%= new Date(h.timestamp).toLocaleString('en-IN') %>
+              </span>
+              <span class="font-medium"><%= h.status %></span>
+              <% if (h.note) { %><span class="text-gray-400">— <%= h.note %></span><% } %>
+            </li>
+            <% }) %>
+          </ul>
+        </div>
+        <% } %>
+
+      </div>
+      <% }) %>
+    </div>
+
+    <div class="mt-8">
+      <a href="/admin/orders"
+         class="inline-block border border-gray-300 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-100 transition text-sm">
+        ← Back to Orders
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Toast library -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+  <script>
+    toastr.options = {
+      closeButton:   true,
+      progressBar:   true,
+      positionClass: 'toast-bottom-right',
+      timeOut:       3000,
+    };
+
+    // ── Update item status ────────────────────────────────────────────────────
+    async function updateStatus(orderId, itemId) {
+      const status = document.getElementById('status-' + itemId).value;
+
+      try {
+        const res  = await fetch(`/admin/orders/${orderId}/items/${itemId}/status`, {
+          method:  'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ status }),
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          toastr.success(data.message || 'Status updated.');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          toastr.error(data.message || 'Failed to update status.');
+        }
+      } catch (err) {
+        console.error(err);
+        toastr.error('Server error while updating status.');
+      }
+    }
+
+    // ── Cancellation approve / reject ─────────────────────────────────────────
+    async function handleCancellation(orderId, itemId, action) {
+      try {
+        const res  = await fetch(`/admin/orders/${orderId}/items/${itemId}/${action}-cancellation`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          toastr.success(data.message);
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          toastr.error(data.message || 'Action failed.');
+        }
+      } catch (err) {
+        console.error(err);
+        toastr.error('Server error.');
+      }
+    }
+
+    // ── Return approve / reject ───────────────────────────────────────────────
+    async function handleReturn(orderId, itemId, action) {
+      try {
+        const res  = await fetch(`/admin/orders/${orderId}/items/${itemId}/${action}-return`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          toastr.success(data.message);
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          toastr.error(data.message || 'Action failed.');
+        }
+      } catch (err) {
+        console.error(err);
+        toastr.error('Server error.');
+      }
+    }
+  </script>
+
+</body>

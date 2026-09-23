@@ -10,6 +10,7 @@ const validate = require("../../middlewares/validate");
 const { productSchema } = require("../../utils/validationSchemas");
 const authController = require("../../controllers/admin/authController");
 const { isAdmin } = require("../../middlewares/authmiddleware");
+const orderController = require('../../controllers/admin/orderAdminController')
 
 // auth
 router.get("/login", authController.getLogin);
@@ -86,5 +87,15 @@ router.delete(
 );
 
 router.get("/dashboard", dashboardController.getDashboard);
+
+// Order routes
+router.get('/orders/',isAdmin,orderController.loadOrders)
+router.get('/orders/:orderId',isAdmin,orderController.loadOrderDetails)
+router.patch('/orders/:orderId/items/:itemId/status',isAdmin,orderController.updateItemStatus)
+router.patch('/orders/:orderId/items/:itemId/cancellation/approve',isAdmin,orderController.approveCancellation)
+router.patch('/orders/:orderId/items/:itemId/cancellation/reject',isAdmin,orderController.rejectCancellation)
+router.patch('/orders/:orderId/items/:itemId/return/approve',isAdmin,orderController.approveReturn)
+router.patch('/orders/:orderId/items/:itemId/return/reject',isAdmin,orderController.rejectReturn)
+
 
 module.exports = router;

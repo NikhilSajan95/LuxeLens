@@ -188,7 +188,7 @@
 
         <!-- Place Order Form -->
         <%# name="addressId" now sends the MongoDB _id, not an array index %>
-        <form id="placeOrderForm" action="/checkout/place-order" method="POST" class="mt-6 mb-2">
+        <form id="placeOrderForm" action="/checkout/orders" method="POST" class="mt-6 mb-2">
           <input type="hidden" id="selectedAddressId" name="addressId"
                  value="<%= selected ? selected._id : '' %>" />
           <input type="hidden" id="selectedPayment" name="paymentMethod" value="COD" />

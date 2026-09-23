@@ -1,0 +1,403 @@
+<body class="bg-gray-50 min-h-screen">
+  <div class="flex min-h-screen">
+
+    <!-- Sidebar -->
+    <div class="w-64 bg-white shadow-md">
+      <%- include('../partials/userSidebar') %>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex justify-center items-start p-10">
+      <div class="w-full max-w-6xl bg-white shadow-md rounded-lg p-10 min-h-[600px]">
+
+        <!-- Header + Search -->
+        <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
+          <h1 class="text-2xl font-bold text-gray-800">Orders</h1>
+
+          <%# Search by orderNumber %>
+          <form method="GET" action="/orders" class="flex gap-2">
+            <input
+              type="text"
+              name="search"
+              value="<%= search || '' %>"
+              placeholder="Search by Order ID…"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring focus:ring-gray-300"
+            />
+            <button type="submit"
+                    class="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-800">
+              Search
+            </button>
+            <% if (search) { %>
+              <a href="/orders"
+                 class="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-100">
+                Clear
+              </a>
+            <% } %>
+          </form>
+        </div>
+
+        <% if (orders && orders.length > 0) { %>
+        <div class="space-y-8">
+
+          <% orders.forEach(order => { %>
+          <div class="border border-gray-200 rounded-lg p-6 bg-gray-50 hover:shadow-md transition order-card"
+               data-order-id="<%= order._id %>">
+
+            <!-- Order Header -->
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <p class="text-sm text-gray-600">
+                  Ordered On: <%= new Date(order.createdAt).toDateString() %>
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  Order ID: <span class="font-medium"><%= order.orderNumber %></span>
+                </p>
+              </div>
+              <p class="text-lg font-bold text-gray-800">
+                ₹<%= Number(order.totalAmount).toFixed(2) %>
+              </p>
+            </div>
+
+            <!-- Order Items -->
+            <div class="space-y-4">
+              <% order.items.forEach(item => { %>
+              <%# data-item-id is read by submitReturnOrder() to send per-item return requests %>
+              <div class="flex items-start justify-between border-b pb-4 last:border-b-0"
+                   data-item-id="<%= item._id %>">
+
+                <!-- LEFT -->
+                <div class="flex gap-4">
+                  <img src="<%= item.image || '/images/no-image.png' %>"
+                       class="w-20 h-20 object-cover rounded"
+                       alt="<%= item.title %>" />
+                  <div>
+                    <h2 class="font-semibold text-lg"><%= item.title %></h2>
+                    <p class="text-sm text-gray-600">
+                      Qty: <%= item.quantity %> | Size: <%= item.size %>
+                      <% if (item.color) { %> | Color: <%= item.color %><% } %>
+                    </p>
+                    <p class="text-sm text-gray-600">₹<%= Number(item.price).toFixed(2) %> each</p>
+                    <%# orderAddress uses name and street_address (schema fields) %>
+                    <p class="text-sm text-gray-600">
+                      Delivering to:
+                      <%= order.orderAddress.name %>,
+                      <%= order.orderAddress.street_address %>,
+                      <%= order.orderAddress.district %>,
+                      <%= order.orderAddress.state %> -
+                      <%= order.orderAddress.pincode %>,
+                      <%= order.orderAddress.country %>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- RIGHT: Status Badge + View -->
+                <div class="flex flex-col items-end space-y-2">
+
+                  <% if (item.status === 'PROCESSING') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm">Processing</span>
+                  <% } else if (item.status === 'PACKED') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm">Packed</span>
+                  <% } else if (item.status === 'SHIPPED') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm">Shipped</span>
+                  <% } else if (item.status === 'DELIVERED') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm">Delivered</span>
+                  <% } else if (item.status === 'CANCELLATION REQUESTED') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-sm">Cancellation Requested</span>
+                  <% } else if (item.status === 'CANCELLED') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-red-100 text-red-800 text-sm">Cancelled</span>
+                  <% } else if (item.status === 'RETURN REQUESTED') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-sm">Return Requested</span>
+                  <% } else if (item.status === 'RETURNED') { %>
+                    <span class="status-badge px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-sm">Returned</span>
+                  <% } %>
+
+                  <a href="/orders/<%= order._id %>"
+                     class="px-4 py-2 bg-black text-white text-sm rounded hover:bg-gray-800">
+                    View Order
+                  </a>
+
+                </div>
+
+              </div>
+              <% }) %>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end mt-5 border-t pt-4 space-x-6">
+
+              <a href="/orders/<%= order._id %>/invoice"
+                 class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                📄 Download Invoice
+              </a>
+
+              <%
+                const allDelivered  = order.items.every(i => i.status === 'DELIVERED');
+                const isCancellable = order.items.some(i => ['PROCESSING', 'PACKED'].includes(i.status));
+                const alreadyRequested = order.items.every(
+                  i => ['CANCELLATION REQUESTED', 'CANCELLED', 'DELIVERED', 'RETURNED', 'RETURN REQUESTED'].includes(i.status)
+                );
+              %>
+
+              <% if (allDelivered) { %>
+                <button onclick="openReturnModal('<%= order._id %>')"
+                        class="return-btn text-sm font-medium text-green-600 hover:text-green-800">
+                  🔁 Return All Products
+                </button>
+              <% } else if (isCancellable && !alreadyRequested) { %>
+                <button onclick="openCancelModal('<%= order._id %>')"
+                        class="cancel-btn text-sm font-medium text-red-600 hover:text-red-800">
+                  ❌ Cancel Order
+                </button>
+              <% } else if (alreadyRequested && !allDelivered) { %>
+                <button disabled
+                        class="text-sm font-medium text-gray-400 cursor-not-allowed bg-gray-100 px-3 py-1 rounded">
+                  ⏳ Cancellation Requested
+                </button>
+              <% } %>
+
+            </div>
+
+          </div>
+          <% }) %>
+
+        </div>
+
+        <% } else { %>
+        <div class="flex flex-col items-center py-10">
+          <dotlottie-wc src="https://lottie.host/d3fc8aff-8670-4850-ab07-c21624e934ad/q64xZVENGn.lottie"
+                        style="width:300px;height:300px" autoplay loop></dotlottie-wc>
+          <p class="mt-6 text-gray-600 text-lg">
+            <%= search ? 'No orders found for "' + search + '"' : 'No orders found' %>
+          </p>
+        </div>
+        <% } %>
+
+        <div class="mt-10 border-t pt-6 flex justify-center bg-gray-50 rounded-b-lg -mx-10 -mb-10 p-6">
+          <a href="/products"
+             class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-100">
+            ← Continue Shopping
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+
+<%# Pagination — no longer passing req.query, only page/totalPages/search needed %>
+<%- include('../partials/pagination.ejs', { currentPage, totalPages, search }) %>
+
+
+<!-- CANCEL MODAL (reason optional) -->
+<div id="cancelModal"
+     class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+  <div class="bg-white rounded-lg p-6 w-96 shadow-lg">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Cancel Order</h2>
+    <textarea
+      id="cancelReason"
+      rows="4"
+      class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring focus:ring-red-200 outline-none"
+      placeholder="Enter cancellation reason (optional)…"
+    ></textarea>
+    <div class="flex justify-end mt-4 space-x-3">
+      <button onclick="closeCancelModal()"
+              class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+        Close
+      </button>
+      <button onclick="submitCancelOrder()"
+              class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+        Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- RETURN MODAL (reason mandatory) -->
+<div id="returnModal"
+     class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+  <div class="bg-white rounded-lg p-6 w-96 shadow-lg">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Return All Products</h2>
+    <textarea
+      id="returnReason"
+      rows="4"
+      class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring focus:ring-green-200 outline-none"
+      placeholder="Enter return reason (required)…"
+    ></textarea>
+    <div class="flex justify-end mt-4 space-x-3">
+      <button onclick="closeReturnModal()"
+              class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+        Close
+      </button>
+      <button onclick="submitReturnOrder()"
+              class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+        Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="/js/logout.js"></script>
+
+<script>
+  toastr.options = {
+    closeButton:   true,
+    progressBar:   true,
+    positionClass: "toast-bottom-right",
+    timeOut:       3000,
+  };
+
+  // ── Cancel Order ──────────────────────────────────────────────────────────
+
+  let selectedOrderId = null;
+
+  function openCancelModal(orderId) {
+    selectedOrderId = orderId;
+    document.getElementById("cancelModal").classList.remove("hidden");
+    document.getElementById("cancelModal").classList.add("flex");
+  }
+
+  function closeCancelModal() {
+    selectedOrderId = null;
+    document.getElementById("cancelReason").value = "";
+    document.getElementById("cancelModal").classList.remove("flex");
+    document.getElementById("cancelModal").classList.add("hidden");
+  }
+
+  async function submitCancelOrder() {
+    // Reason is OPTIONAL — no client-side validation required
+    const reason = document.getElementById("cancelReason").value.trim();
+
+    try {
+      const res = await fetch(`/orders/${selectedOrderId}/cancel`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ reason }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        toastr.success("Order cancellation requested successfully.");
+
+        // Update all cancellable badges on this card
+        document
+          .querySelectorAll(`[data-order-id="${selectedOrderId}"] .status-badge`)
+          .forEach((badge) => {
+            const cancellable = ["Processing", "Packed"];
+            if (cancellable.includes(badge.textContent.trim())) {
+              badge.textContent = "Cancellation Requested";
+              badge.className   =
+                "status-badge px-3 py-1 text-sm rounded-full bg-orange-100 text-orange-800";
+            }
+          });
+
+        // Replace Cancel button with disabled indicator
+        const orderCard   = document.querySelector(`[data-order-id="${selectedOrderId}"]`);
+        const cancelButton = orderCard?.querySelector(".cancel-btn");
+        if (cancelButton) {
+          const disabledBtn       = document.createElement("button");
+          disabledBtn.disabled    = true;
+          disabledBtn.textContent = "⏳ Cancellation Requested";
+          disabledBtn.className   =
+            "text-sm font-medium text-gray-400 cursor-not-allowed bg-gray-100 px-3 py-1 rounded";
+          cancelButton.replaceWith(disabledBtn);
+        }
+      } else {
+        toastr.error(data.message || "Failed to cancel order. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      toastr.error("Error cancelling order.");
+    } finally {
+      closeCancelModal();
+    }
+  }
+
+  // ── Return Order ──────────────────────────────────────────────────────────
+
+  let selectedReturnOrderId = null;
+
+  function openReturnModal(orderId) {
+    selectedReturnOrderId = orderId;
+    document.getElementById("returnModal").classList.remove("hidden");
+    document.getElementById("returnModal").classList.add("flex");
+  }
+
+  function closeReturnModal() {
+    selectedReturnOrderId = null;
+    document.getElementById("returnReason").value = "";
+    document.getElementById("returnModal").classList.remove("flex");
+    document.getElementById("returnModal").classList.add("hidden");
+  }
+
+  async function submitReturnOrder() {
+    const reason = document.getElementById("returnReason").value.trim();
+
+    // Reason is MANDATORY for returns
+    if (!reason) {
+      toastr.warning("Please enter a reason for return.");
+      return;
+    }
+
+    // Collect item IDs from data-item-id attributes embedded on each item row
+    const orderCard = document.querySelector(`[data-order-id="${selectedReturnOrderId}"]`);
+    const itemIds = [];
+    orderCard?.querySelectorAll("[data-item-id]").forEach(el => {
+      itemIds.push(el.dataset.itemId);
+    });
+
+    if (itemIds.length === 0) {
+      toastr.error("Could not find items to return.");
+      closeReturnModal();
+      return;
+    }
+
+    try {
+      // Send return request for each delivered item
+      const results = await Promise.all(
+        itemIds.map(itemId =>
+          fetch(`/orders/${selectedReturnOrderId}/items/${itemId}/return`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ reason }),
+          }).then(r => r.json())
+        )
+      );
+
+      const allOk = results.every(r => r.success);
+
+      if (allOk) {
+        toastr.success("Return request submitted successfully.");
+
+        // Update all badges
+        orderCard?.querySelectorAll(".status-badge").forEach((badge) => {
+          badge.textContent = "Return Requested";
+          badge.className   =
+            "status-badge px-3 py-1 text-sm rounded-full bg-orange-100 text-orange-800";
+        });
+
+        // Replace Return button
+        const returnButton = orderCard?.querySelector(".return-btn");
+        if (returnButton) {
+          const disabledBtn       = document.createElement("button");
+          disabledBtn.disabled    = true;
+          disabledBtn.textContent = "⏳ Return Requested";
+          disabledBtn.className   =
+            "text-sm font-medium text-gray-400 cursor-not-allowed bg-gray-100 px-3 py-1 rounded";
+          returnButton.replaceWith(disabledBtn);
+        }
+      } else {
+        toastr.error("Some items could not be returned. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      toastr.error("Error submitting return request.");
+    } finally {
+      closeReturnModal();
+    }
+  }
+</script>

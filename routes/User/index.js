@@ -7,6 +7,7 @@ router.use('/profile', require('./profileRoutes'))
 router.use('/password', require('./passwordRoutes'))
 router.use('/cart', require('./cartRoutes'))
 router.use('/checkout', require('./checkoutRoutes'))
+router.use('/orders', require('./orderRoutes'))
 
 
 

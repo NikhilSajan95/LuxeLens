@@ -1,0 +1,435 @@
+<!-- Outer wrapper ensures centering inside the layout's <main> -->
+<div class="w-full flex justify-center py-10">
+  <!-- Card: centered, limited width, responsive padding -->
+  <div class="max-w-7xl w-full bg-white shadow-md rounded-lg p-6 mx-4">
+    <!-- Heading -->
+    <h1 class="text-2xl font-bold text-center mb-6">Order Tracking</h1>
+    <p class="text-center text-gray-600 mb-8">
+      Track your order status and delivery information
+    </p>
+
+    <% if (!order) { %>
+    <p class="text-center text-red-500">Order not found.</p>
+    <% } else { %>
+
+    <!-- Product Details -->
+    <% if (primaryItem) { %>
+    <div class="flex items-center gap-4 border-b pb-4 mb-6">
+      <img
+        src="<%= primaryItem.image %>"
+        alt="product"
+        class="w-20 h-20 object-cover rounded"
+      />
+      <div>
+        <h2 class="font-bold text-lg"><%= primaryItem.title %></h2>
+        <p class="text-xs text-gray-500 mb-1">
+          Order No:
+          <span class="font-mono text-gray-700"><%= order.orderNumber %></span>
+        </p>
+        <p class="text-sm text-gray-600">
+          Size: <%= primaryItem.size || '-' %> | Qty: <%= primaryItem.quantity
+          %>
+        </p>
+        
+        <%
+let paymentLabel = 'PENDING';
+let paymentColor = 'bg-yellow-500';
+
+const s = primaryItem.status;
+
+// 1️⃣ If order is prepaid and completed
+if (order.paymentStatus === 'COMPLETED') {
+  paymentLabel = 'PAID';
+  paymentColor = 'bg-green-500';
+}
+
+// 2️⃣ COD paid after delivery
+else if (order.paymentMethod === "COD" && s === 'DELIVERED') {
+  paymentLabel = 'PAID';
+  paymentColor = 'bg-green-600';
+}
+
+// 3️⃣ Refund flow
+else if (s === 'RETURN REQUESTED' || s === 'CANCELLATION REQUESTED') {
+  paymentLabel = 'REFUND IN PROCESS';
+  paymentColor = 'bg-orange-500';
+}
+
+// 4️⃣ Refund completed
+else if (s === 'RETURNED' || s === 'CANCELLED') {
+  paymentLabel = 'REFUNDED';
+  paymentColor = 'bg-green-600';
+}
+
+// 5️⃣ Pending for all others (Processing / Packed / Shipped)
+else {
+  paymentLabel = 'PENDING';
+  paymentColor = 'bg-yellow-500';
+}
+%>
+
+ 
+        <p class="text-sm text-gray-700 mt-1">
+          Payment Method:
+          <span class="font-semibold"><%= order.paymentMethod %></span>
+        </p>
+
+        <p class="mt-1">
+          Payment Status:
+          <span
+            class="px-2 py-1 rounded text-white text-sm <%= paymentColor %>"
+          >
+            <%= paymentLabel %>
+          </span>
+        </p>
+
+      </div>
+    </div>
+    <% } else { %>
+    <p class="text-gray-500 mb-6">No items found in this order.</p>
+    <% } %>
+
+    <!-- 🕒 Timeline with Progress Fill -->
+    <div class="relative flex justify-between items-center mb-10 w-full">
+      <!-- Gray base line -->
+      <div
+        class="absolute top-1/2 left-0 w-full h-[2px] bg-gray-300 -z-10"
+      ></div>
+
+      <!-- Dynamic black progress line -->
+      <% const statuses = [ { key: 'PROCESSING', label: 'Processing', icon:
+      'clock' }, { key: 'PACKED', label: 'Packed', icon: 'box' }, { key:
+      'SHIPPED', label: 'Shipped', icon: 'truck' }, { key: 'DELIVERED', label:
+      'Delivered', icon: 'check-circle' }, { key: 'RETURN REQUESTED', label:
+      'Return Requested', icon: 'rotate-ccw' }, { key: 'RETURNED', label:
+      'Returned', icon: 'rotate-ccw' }, { key: 'CANCELLATION REQUESTED', label:
+      'Cancellation Requested', icon: 'x-circle' }, { key: 'CANCELLED', label:
+      'Cancelled', icon: 'x-circle' } ]; const currentStatus = primaryItem ?
+      primaryItem.status : 'PROCESSING'; const currentIndex =
+      statuses.findIndex(s => s.key === currentStatus); const fillPercent =
+      ((currentIndex) / (statuses.length - 1)) * 100; // Fill percentage %>
+
+      <!-- Black progress line -->
+      <div
+        class="absolute top-1/2 left-0 h-[2px] bg-black transition-all duration-500 -z-0"
+        style="width: <%= fillPercent %>%"
+      ></div>
+
+      <% statuses.forEach((status, index) => { %>
+      <div class="flex flex-col items-center text-center w-full relative">
+        <!-- Circle -->
+        <div
+          class="w-10 h-10 flex items-center justify-center rounded-full mb-2 transition-all <%= index <= currentIndex ? (status.key.includes('CANCEL') ? 'bg-orange-400' : 'bg-black') : 'bg-gray-200' %>"
+        >
+          <% if (status.icon === 'clock') { %>
+          <i class="fa-regular fa-clock text-white text-sm"></i>
+          <% } else if (status.icon === 'box') { %>
+          <i class="fa-solid fa-box text-white text-sm"></i>
+          <% } else if (status.icon === 'truck') { %>
+          <i class="fa-solid fa-truck text-white text-sm"></i>
+          <% } else if (status.icon === 'check-circle') { %>
+          <i class="fa-solid fa-circle-check text-white text-sm"></i>
+          <% } else if (status.icon === 'rotate-ccw') { %>
+          <i class="fa-solid fa-arrow-rotate-left text-white text-sm"></i>
+          <% } else { %>
+          <i class="fa-solid fa-xmark text-white text-sm"></i>
+          <% } %>
+        </div>
+
+        <!-- Label -->
+        <p
+          class="text-xs sm:text-sm <%= index <= currentIndex ? 'font-semibold text-black' : 'text-gray-500' %>"
+        >
+          <%= status.label %>
+        </p>
+      </div>
+      <% }); %>
+    </div>
+
+    <!-- Cancel / Return Button -->
+    <div class="flex justify-end mb-4">
+      <% if (primaryItem) { %> <% if (['PROCESSING',
+      'PACKED'].includes(primaryItem.status)) { %>
+      <button
+        onclick="openCancelModal('<%= order._id %>', '<%= primaryItem._id %>')"
+        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+      >
+        Cancel Item
+      </button>
+      <% } else if (primaryItem.status === 'DELIVERED') { %>
+      <button
+        onclick="openReturnModal('<%= order._id %>', '<%= primaryItem._id %>')"
+        class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+      >
+        Return Product
+      </button>
+      <% } else if (primaryItem.status === 'RETURN REQUESTED') { %>
+      <button
+        disabled
+        class="bg-gray-300 text-gray-600 px-4 py-2 rounded cursor-not-allowed"
+      >
+        ⏳ Return Requested
+      </button>
+      <% } else if (primaryItem.status === 'RETURNED') { %>
+      <button
+        disabled
+        class="bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed"
+      >
+        ✅ Returned
+      </button>
+      <% } else if (primaryItem.status === 'CANCELLATION REQUESTED') { %>
+      <button
+        disabled
+        class="bg-orange-400 text-white px-4 py-2 rounded cursor-not-allowed"
+      >
+        ⏳ Cancellation Requested
+      </button>
+      <% } else if (primaryItem.status === 'CANCELLED') { %>
+      <button
+        disabled
+        class="bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed"
+      >
+        ❌ Cancelled
+      </button>
+      <% } %> <% } %>
+    </div>
+
+    <!-- Delivery + Order Summary -->
+    <div class="grid grid-cols-2 gap-8">
+      <!-- Address -->
+      <div>
+        <h3 class="font-bold text-lg mb-3">Delivery Address</h3>
+        <% if (order.orderAddress) { %>
+        <p><strong><%= order.orderAddress.fullname || '-' %></strong></p>
+        <p>
+          <%= order.orderAddress.address || '-' %>, <%= order.orderAddress.state
+          || '-' %>
+        </p>
+        <p><%= order.orderAddress.pincode || '-' %></p>
+        <% } else { %>
+        <p class="text-gray-500">No address found</p>
+        <% } %>
+      </div>
+
+      <!-- Summary -->
+<div>
+  <h3 class="font-bold text-lg mb-3">Order Summary</h3>
+
+  <% if (primaryItem) { %>
+
+    <%
+  // Item actual price
+  const itemActual = (primaryItem.actualPrice || 0) * primaryItem.quantity;
+
+  // OFFER DISCOUNT (actual - offerPrice)
+  const itemOffer = ((primaryItem.actualPrice || 0) - (primaryItem.offerPrice || primaryItem.actualPrice)) 
+                    * primaryItem.quantity;
+
+  // COUPON DISCOUNT (proportional distribution)
+  const totalActual = order.actualTotal || 1;
+  const itemPortion = itemActual / totalActual;
+  const itemCoupon = (order.couponDiscount || 0) * itemPortion;
+
+  // TAXABLE AMOUNT
+  let itemTaxable = itemActual - itemOffer - itemCoupon;
+  const itemTax = itemTaxable * 0.02;
+
+  // FINAL TOTAL
+  const itemTotal = itemTaxable + itemTax;
+%>
+
+
+    <div class="space-y-2 text-gray-700 text-base">
+
+      <p><span class="font-medium">Price (Actual):</span> ₹<%= itemActual.toFixed(2) %></p>
+
+      <p class="text-green-600"><span class="font-medium">Offer Discount:</span> -₹<%= itemOffer.toFixed(2) %></p>
+
+      <% if(itemCoupon > 0){ %>
+      <p class="text-green-600">
+        <span class="font-medium">Coupon Discount:</span> -₹<%= itemCoupon.toFixed(2) %>
+      </p>
+      <% } %>
+
+      <p><span class="font-medium">Tax:</span> ₹<%= itemTax.toFixed(2) %></p>
+
+      <hr class="my-2" />
+
+      <div class="flex justify-between font-bold text-lg">
+        <p>Total</p>
+        <p>₹<%= itemTotal.toFixed(2) %></p>
+      </div>
+
+      <p class="text-green-700 text-sm font-medium mt-1">
+        You saved ₹<%= (itemOffer + itemCoupon).toFixed(2) %> 🎉
+      </p>
+
+    </div>
+
+  <% } else { %>
+    <p class="text-gray-500">Order summary unavailable.</p>
+  <% } %>
+</div>
+
+
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- ❗ Cancel Item Modal -->
+<div
+  id="cancelModal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50"
+>
+  <div class="bg-white rounded-lg p-6 w-96 shadow-lg">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Cancel Product</h2>
+    <textarea
+      id="cancelReason"
+      rows="4"
+      class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring focus:ring-red-200 outline-none"
+      placeholder="Enter cancellation reason..."
+    ></textarea>
+    <div class="flex justify-end mt-4 space-x-3">
+      <button
+        onclick="closeCancelModal()"
+        class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+      >
+        Close
+      </button>
+      <button
+        onclick="submitCancelOrder()"
+        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+      >
+        Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 🟡 Return Item Modal -->
+<div
+  id="returnModal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50"
+>
+  <div class="bg-white rounded-lg p-6 w-96 shadow-lg">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Return Product</h2>
+    <textarea
+      id="returnReason"
+      rows="4"
+      class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring focus:ring-yellow-200 outline-none"
+      placeholder="Enter reason for return..."
+    ></textarea>
+    <div class="flex justify-end mt-4 space-x-3">
+      <button
+        onclick="closeReturnModal()"
+        class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+      >
+        Close
+      </button>
+      <button
+        onclick="submitReturnOrder()"
+        class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+      >
+        Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Toastr JS + CSS -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+  toastr.options = {
+    closeButton: true,
+    progressBar: true,
+    positionClass: "toast-bottom-right",
+    timeOut: 3000,
+  };
+
+  let selectedOrderId = null,
+    selectedItemId = null;
+  function openCancelModal(orderId, itemId) {
+    selectedOrderId = orderId;
+    selectedItemId = itemId;
+    document.getElementById("cancelModal").classList.replace("hidden", "flex");
+  }
+  function closeCancelModal() {
+    selectedOrderId = null;
+    selectedItemId = null;
+    document.getElementById("cancelReason").value = "";
+    document.getElementById("cancelModal").classList.replace("flex", "hidden");
+  }
+  async function submitCancelOrder() {
+    const reason = document.getElementById("cancelReason").value.trim();
+    if (!reason)
+      return toastr.warning("Please enter a reason for cancellation.");
+    try {
+      const res = await fetch(
+        `/orders/${selectedOrderId}/item/${selectedItemId}/cancel`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        }
+      );
+      if (res.ok) {
+        toastr.success("Product cancellation requested successfully.");
+        location.reload();
+      } else toastr.error("Failed to cancel product.");
+    } catch (err) {
+      toastr.error("Error cancelling product.");
+    } finally {
+      closeCancelModal();
+    }
+  }
+
+  // 🟡 Return Logic
+  let selectedReturnOrderId = null,
+    selectedReturnItemId = null;
+  function openReturnModal(orderId, itemId) {
+    selectedReturnOrderId = orderId;
+    selectedReturnItemId = itemId;
+    document.getElementById("returnModal").classList.replace("hidden", "flex");
+  }
+  function closeReturnModal() {
+    selectedReturnOrderId = null;
+    selectedReturnItemId = null;
+    document.getElementById("returnReason").value = "";
+    document.getElementById("returnModal").classList.replace("flex", "hidden");
+  }
+  async function submitReturnOrder() {
+    const reason = document.getElementById("returnReason").value.trim();
+    if (!reason) return toastr.warning("Please enter a reason for return.");
+    try {
+      const res = await fetch(
+        `/orders/${selectedReturnOrderId}/item/${selectedReturnItemId}/return`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        }
+      );
+      if (res.ok) {
+        toastr.success("Return request submitted successfully.");
+        location.reload();
+      } else toastr.error("Failed to submit return request.");
+    } catch (err) {
+      toastr.error("Error submitting return request.");
+    } finally {
+      closeReturnModal();
+    }
+  }
+</script>
+
+<style>
+  .transition {
+    transition: all 0.4s ease-in-out;
+  }
+</style>
